@@ -1,0 +1,467 @@
+{{ define "content" }}
+<main class="content py-4">
+    <div class="container-fluid" style="max-width: 1100px; margin: 0 auto;">
+
+
+        {{ if or .Message .Error }}
+        <div class="alert {{ if .Message }}alert-success{{ else }}alert-danger{{ end }} alert-dismissible fade show rounded-4 border-0 shadow-sm mb-5" role="alert">
+            <i data-lucide="{{ if .Message }}check-circle{{ else }}alert-circle{{ end }}" class="me-2" style="width: 20px; height: 20px; vertical-align: middle;"></i>
+            {{ if .Message }}{{ .Message }}{{ else }}{{ .Error }}{{ end }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {{ end }}
+
+        <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+            <div class="card-header bg-light border-0 p-0">
+                <ul class="nav nav-tabs settings-tabs border-0" id="settingsTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="business-tab" data-bs-toggle="tab" data-bs-target="#business" type="button" role="tab" aria-controls="business" aria-selected="true">
+                            <i data-lucide="building" class="me-2"></i> {{ t "business_profile" .Lang }}
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab" aria-controls="users" aria-selected="false">
+                            <i data-lucide="users" class="me-2"></i> {{ t "manage_users" .Lang }}
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button" role="tab" aria-controls="logs" aria-selected="false">
+                            <i data-lucide="activity" class="me-2"></i> {{ t "activity_log" .Lang }}
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="account-tab" data-bs-toggle="tab" data-bs-target="#account" type="button" role="tab" aria-controls="account" aria-selected="false">
+                            <i data-lucide="user" class="me-2"></i> {{ t "my_account" .Lang }}
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body p-4">
+                <div class="tab-content" id="settingsTabContent">
+                    <!-- Business Profile Tab -->
+                    <div class="tab-pane fade show active" id="business" role="tabpanel" aria-labelledby="business-tab">
+                        <form action="/api/settings/update-global" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
+                            <div class="row g-4 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold text-muted small">{{ t "business_name" .Lang }}</label>
+                                    <input type="text" name="business_name" class="form-control form-control-lg rounded-3" value="{{ .GlobalSettings.BusinessName }}" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold text-muted small">{{ t "address" .Lang }}</label>
+                                    <input type="text" name="address" class="form-control form-control-lg rounded-3" value="{{ .GlobalSettings.Address }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold text-muted small">{{ t "timezone" .Lang }}</label>
+                                    <div class="d-flex gap-3 align-items-center">
+                                        <select name="timezone" class="form-select form-select-lg rounded-3 flex-grow-1">
+                                            <option value="Asia/Jakarta" {{ if eq .GlobalSettings.Timezone "Asia/Jakarta" }}selected{{ end }}>{{ t "wib_jakarta" .Lang }}</option>
+                                            <option value="Asia/Makassar" {{ if eq .GlobalSettings.Timezone "Asia/Makassar" }}selected{{ end }}>{{ t "wita_makassar" .Lang }}</option>
+                                            <option value="Asia/Jayapura" {{ if eq .GlobalSettings.Timezone "Asia/Jayapura" }}selected{{ end }}>{{ t "wit_jayapura" .Lang }}</option>
+                                            <option value="UTC" {{ if eq .GlobalSettings.Timezone "UTC" }}selected{{ end }}>UTC</option>
+                                        </select>
+                                        <div id="live-clock" class="orange-clock">03:44:13</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-grid mt-4">
+                                <button type="submit" id="btnSimpanPerubahan" class="btn btn-orange btn-lg rounded-3 fw-bold shadow-sm d-flex justify-content-center align-items-center position-relative overflow-hidden" style="transition: all 0.3s ease;">
+                                    <i data-lucide="save" class="me-2 save-icon" style="width: 20px; height: 20px;"></i>
+                                    <span class="btn-text">{{ t "save_changes" .Lang }}</span>
+                                    <span class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true" id="saveSpinner"></span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Manage Users Tab -->
+                    <div class="tab-pane fade" id="users" role="tabpanel" aria-labelledby="users-tab">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-bold mb-0">{{ t "manage_users" .Lang }}</h5>
+                            <button class="btn btn-primary btn-sm rounded-3" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                                <i data-lucide="user-plus" class="me-1" style="width: 16px; height: 16px;"></i> {{ t "add_user" .Lang }}
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>{{ t "username" .Lang }}</th>
+                                        <th>{{ t "role" .Lang }}</th>
+                                        <th>{{ t "status" .Lang }}</th>
+                                        <th class="text-end">{{ t "actions" .Lang }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {{ range .Users }}
+                                    <tr>
+                                        <td class="fw-bold">{{ .Username }}</td>
+                                        <td><span class="badge bg-light text-dark border">{{ .Role }}</span></td>
+                                        <td>
+                                            <span class="badge {{ if eq .Status "active" }}bg-success-subtle text-success{{ else }}bg-danger-subtle text-danger{{ end }} rounded-pill px-3">
+                                                {{ .Status }}
+                                            </span>
+                                        </td>
+                                        <td class="text-end">
+                                            <form action="/api/users/toggle-status" method="POST" class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="{{ $.CSRFToken }}">
+                                                <input type="hidden" name="user_id" value="{{ .ID }}">
+                                                <button type="submit" class="btn btn-sm {{ if eq .Status "active" }}btn-outline-danger{{ else }}btn-outline-success{{ end }} rounded-pill px-3">
+                                                    {{ if eq .Status "active" }}{{ t "deactivate" .Lang }}{{ else }}{{ t "activate" .Lang }}{{ end }}
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {{ end }}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Activity Log Tab -->
+                    <div class="tab-pane fade" id="logs" role="tabpanel" aria-labelledby="logs-tab">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div>
+                                <h5 class="fw-bold mb-0">{{ t "activity_log" .Lang }}</h5>
+                                <p class="text-muted small mb-0">{{ t "activity_log_desc" .Lang }}</p>
+                            </div>
+                            <a href="/activity-logs" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold">
+                                {{ t "view_all" .Lang }} <i data-lucide="chevron-right" class="ms-1" style="width: 14px; height: 14px;"></i>
+                            </a>
+                        </div>
+                        <div class="activity-timeline pe-2">
+                            {{ range .Logs }}
+                            <div class="activity-item d-flex gap-3 mb-4 position-relative">
+                                <div class="activity-icon-wrapper flex-shrink-0">
+                                    <div class="activity-icon-badge rounded-circle d-flex align-items-center justify-content-center shadow-sm" data-action="{{ .Action }}" style="width: 40px; height: 40px;">
+                                        <i data-lucide="activity" style="width: 20px; height: 20px;"></i>
+                                    </div>
+                                </div>
+                                <div class="activity-body bg-white border border-light shadow-sm rounded-4 p-3 flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                        <span class="fw-bold text-dark">{{ .Username }}</span>
+                                        <span class="activity-time text-muted small ms-2">{{ formatDateTime .CreatedAt }}</span>
+                                    </div>
+                                    <div class="activity-action text-secondary small">
+                                        {{ .Action }}
+                                    </div>
+                                </div>
+                            </div>
+                            {{ else }}
+                            <div class="text-center py-5 text-muted">
+                                <i data-lucide="inbox" class="d-block mx-auto mb-3" style="width: 48px; height: 48px; opacity: 0.2;"></i>
+                                <p>{{ t "no_recent_activity" .Lang }}</p>
+                            </div>
+                            {{ end }}
+                        </div>
+                    </div>
+
+                    <!-- My Account Tab -->
+                    <div class="tab-pane fade" id="account" role="tabpanel" aria-labelledby="account-tab">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <div class="card bg-light border-0 rounded-4 p-4 shadow-sm mb-4">
+                                    <h6 class="fw-bold mb-4">{{ t "update_profile" .Lang }}</h6>
+                                    <form action="/api/user/update-username" method="POST">
+                                        <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold text-muted">{{ t "username" .Lang }}</label>
+                                            <input type="text" name="username" class="form-control rounded-3" value="{{ .CurrentUser.Username }}" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-dark w-100 rounded-3 fw-bold">{{ t "update_username" .Lang }}</button>
+                                    </form>
+                                </div>
+                                <div class="card bg-light border-0 rounded-4 p-4 shadow-sm">
+                                    <h6 class="fw-bold mb-4">{{ t "language_settings" .Lang }}</h6>
+                                    <form action="/api/user/set-lang" method="POST">
+                                        <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold text-muted">{{ t "preferred_language" .Lang }}</label>
+                                            <select name="lang" class="form-select rounded-3">
+                                                <option value="en" {{ if eq .Lang "en" }}selected{{ end }}>English</option>
+                                                <option value="id" {{ if eq .Lang "id" }}selected{{ end }}>Bahasa Indonesia</option>
+                                            </select>
+                                        </div>
+                                        <button type="submit" class="btn btn-outline-dark w-100 rounded-3 fw-bold">{{ t "set_language" .Lang }}</button>
+                                    </form>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card bg-light border-0 rounded-4 p-4 shadow-sm h-100">
+                                    <h6 class="fw-bold mb-4">{{ t "change_password" .Lang }}</h6>
+                                    <form id="changePasswordForm">
+                                        <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold text-muted">{{ t "current_password" .Lang }}</label>
+                                            <input type="password" name="current_password" class="form-control rounded-3" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold text-muted">{{ t "new_password" .Lang }}</label>
+                                            <input type="password" name="new_password" class="form-control rounded-3" required>
+                                        </div>
+                                        <div class="mb-4">
+                                            <label class="form-label small fw-bold text-muted">{{ t "confirm_new_password" .Lang }}</label>
+                                            <input type="password" name="confirm_password" class="form-control rounded-3" required>
+                                        </div>
+                                        <button type="button" onclick="changePassword()" class="btn btn-warning w-100 rounded-3 fw-bold shadow-sm">{{ t "change_password" .Lang }}</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">{{ t "add_new_user" .Lang }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="/api/users/create" method="POST">
+                <div class="modal-body p-4">
+                    <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">{{ t "username" .Lang }}</label>
+                        <input type="text" name="username" class="form-control rounded-3" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">{{ t "password" .Lang }}</label>
+                        <input type="password" name="password" class="form-control rounded-3" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">{{ t "role" .Lang }}</label>
+                        <select name="role" class="form-select rounded-3">
+                            <option value="admin">{{ t "admin" .Lang }}</option>
+                            <option value="staff">{{ t "staff" .Lang }}</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-3" data-bs-dismiss="modal">{{ t "cancel" .Lang }}</button>
+                    <button type="submit" class="btn btn-primary rounded-3 px-4">{{ t "save" .Lang }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .settings-tabs .nav-link {
+        color: #6c757d;
+        font-weight: 500;
+        padding: 1.25rem 2rem;
+        border: none;
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s ease;
+    }
+    .settings-tabs .nav-link:hover {
+        background-color: rgba(0,0,0,0.02);
+        color: #fd7e14;
+    }
+    .settings-tabs .nav-link.active {
+        background-color: #fff !important;
+        color: #fd7e14 !important;
+        border-bottom: 3px solid #fd7e14 !important;
+        border-left: 1px solid #dee2e6;
+        border-right: 1px solid #dee2e6;
+        border-radius: 0;
+    }
+    .settings-tabs .nav-item:first-child .nav-link.active {
+        border-left: none;
+    }
+    
+    .orange-clock {
+        background: #fff;
+        border: 2px solid #ffccb3;
+        color: #fd7e14;
+        font-family: 'Courier New', Courier, monospace;
+        font-weight: bold;
+        font-size: 1.25rem;
+        padding: 0.4rem 1.2rem;
+        border-radius: 10px;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .btn-orange {
+        background-color: #fd7e14;
+        border-color: #fd7e14;
+        color: white;
+    }
+    .btn-orange:hover {
+        background-color: #e8630a;
+        border-color: #e8630a;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(253, 126, 20, 0.3) !important;
+    }
+    .btn-orange:active {
+        transform: translateY(0);
+    }
+    
+    .activity-timeline {
+        max-height: 550px;
+        overflow-y: auto;
+        position: relative;
+    }
+    .activity-timeline::before {
+        content: '';
+        position: absolute;
+        left: 19px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #f1f3f5;
+        z-index: 0;
+    }
+    .activity-timeline::-webkit-scrollbar {
+        width: 4px;
+    }
+    .activity-timeline::-webkit-scrollbar-thumb {
+        background: #dee2e6;
+        border-radius: 10px;
+    }
+    .activity-icon-wrapper {
+        z-index: 1;
+        position: relative;
+    }
+    .activity-icon-badge {
+        background: white;
+        transition: all 0.2s ease;
+    }
+    .activity-body {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .activity-item:hover .activity-body {
+        transform: translateX(5px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+    }
+    .activity-item:hover .activity-icon-badge {
+        transform: scale(1.1);
+    }
+</style>
+
+<script>
+    function updateClock() {
+        const tz = "{{ .GlobalSettings.Timezone }}";
+        const now = new Date();
+        try {
+            const time = now.toLocaleTimeString('en-GB', { timeZone: tz, hour12: false });
+            const el = document.getElementById('live-clock');
+            if (el) el.innerText = time;
+        } catch (e) {}
+    }
+    
+    async function changePassword() {
+        const form = document.getElementById('changePasswordForm');
+        const formData = new FormData(form);
+        try {
+            const resp = await fetch('/api/user/change-password', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await resp.json();
+            if (resp.ok) {
+                alert(data.message);
+                form.reset();
+            } else {
+                alert(data.error);
+            }
+        } catch (e) {
+            alert('Failed to change password');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Log enhancement
+        const logBadges = document.querySelectorAll('.activity-icon-badge');
+        logBadges.forEach(badge => {
+            const action = badge.getAttribute('data-action').toLowerCase();
+            let icon = 'activity';
+            let bgColor = '#f8f9fa';
+            let color = '#6c757d';
+
+            if (action.includes('login') || action.includes('logged in')) {
+                icon = 'log-in';
+                bgColor = '#e7f1ff';
+                color = '#0d6efd';
+            } else if (action.includes('created') || action.includes('added')) {
+                icon = 'plus-circle';
+                bgColor = '#e6fffa';
+                color = '#00b894';
+            } else if (action.includes('updated') || action.includes('settings')) {
+                icon = 'settings';
+                bgColor = '#fff4e6';
+                color = '#fd7e14';
+            } else if (action.includes('sale') || action.includes('processed')) {
+                icon = 'shopping-cart';
+                bgColor = '#fff0f3';
+                color = '#ff4d6d';
+            } else if (action.includes('delete') || action.includes('removed')) {
+                icon = 'trash-2';
+                bgColor = '#fff5f5';
+                color = '#fa5252';
+            }
+
+            badge.style.backgroundColor = bgColor;
+            badge.style.color = color;
+            badge.style.border = `1px solid ${color}20`;
+            const iconEl = badge.querySelector('i');
+            if (iconEl) iconEl.setAttribute('data-lucide', icon);
+        });
+
+        // Initialize Lucide again for dynamic icons
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+
+        // Optimize Simpan Perubahan button
+        const simpanForm = document.querySelector('form[action="/api/settings/update-global"]');
+        if (simpanForm) {
+            simpanForm.addEventListener('submit', function() {
+                const btn = document.getElementById('btnSimpanPerubahan');
+                const spinner = document.getElementById('saveSpinner');
+                const icon = btn.querySelector('.save-icon');
+                if (btn && spinner) {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.9';
+                    spinner.classList.remove('d-none');
+                    if(icon) icon.classList.add('d-none');
+                    btn.querySelector('.btn-text').innerText = '{{ t "saving" .Lang }}...';
+                }
+            });
+        }
+
+        setInterval(updateClock, 1000);
+        updateClock();
+        
+        // Handle tab from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab');
+        if (tab) {
+            const tabEl = document.querySelector(`#settingsTab button[data-bs-target="#${tab}"]`);
+            if (tabEl) {
+                bootstrap.Tab.getInstance(tabEl)?.show() || new bootstrap.Tab(tabEl).show();
+            }
+        }
+        
+        // Update URL on tab change
+        const triggerTabList = [].slice.call(document.querySelectorAll('#settingsTab button'))
+        triggerTabList.forEach(function (triggerEl) {
+            const tabTrigger = new bootstrap.Tab(triggerEl)
+            triggerEl.addEventListener('click', function (event) {
+                event.preventDefault()
+                tabTrigger.show()
+                const target = this.getAttribute('data-bs-target').substring(1);
+                const newUrl = window.location.pathname + '?tab=' + target;
+                window.history.pushState({path:newUrl},'',newUrl);
+            })
+        })
+    });
+</script>
+{{ end }}

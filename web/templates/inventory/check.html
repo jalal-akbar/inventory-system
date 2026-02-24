@@ -1,0 +1,101 @@
+{{ define "content" }}
+<main class="content">
+    <div class="container-fluid" style="max-width: 1400px; margin: 0 auto;">
+        <div class="mb-4 d-flex justify-content-between align-items-end flex-wrap gap-3">
+            <div>
+                <h1 class="display-6 mb-1 fw-bold">{{ .PageTitle }}</h1>
+                <p class="text-muted mb-0">{{ t "stock_reconcile_desc" .Lang }}</p>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <a href="/inventory" class="btn btn-outline-secondary rounded-3 d-flex align-items-center gap-2 px-3 shadow-sm">
+                    <i data-lucide="arrow-left" style="width: 18px; height: 18px;"></i>
+                    <span>{{ t "back_to_inventory" .Lang }}</span>
+                </a>
+            </div>
+        </div>
+
+        {{ if .Message }}
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3 mb-4 d-flex align-items-center" role="alert">
+            <i data-lucide="check-circle" class="me-2" style="width: 20px; height: 20px;"></i>
+            <div>{{ .Message }}</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {{ end }}
+
+        <!-- Inventory Check Table -->
+        <form method="POST" action="/inventory/check">
+            <input type="hidden" name="gorilla.csrf.Token" value="{{ .CSRFToken }}">
+            <div class="card border-0 shadow-sm p-0 rounded-4 bg-white overflow-hidden mb-4">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="border-0 px-4 py-3 text-muted small fw-bold text-uppercase">{{ t "product_info" .Lang }}</th>
+                                <th class="border-0 py-3 text-muted small fw-bold text-uppercase">{{ t "batch_no" .Lang }}</th>
+                                <th class="border-0 py-3 text-muted small fw-bold text-uppercase">{{ t "expiry_date" .Lang }}</th>
+                                <th class="border-0 py-3 text-muted small fw-bold text-uppercase text-center">{{ t "current_stock" .Lang }}</th>
+                                <th class="border-0 py-3 text-muted small fw-bold text-uppercase text-center" style="width: 200px;">{{ t "actual_physical_stock" .Lang }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{ if not .Products }}
+                                <tr>
+                                    <td colspan="5" class="text-center py-5">
+                                        <div class="text-muted mb-2">
+                                            <i data-lucide="package-search" style="width: 48px; height: 48px; opacity: 0.2;"></i>
+                                        </div>
+                                        <p class="mb-0">{{ t "no_active_batches_check" .Lang }}</p>
+                                    </td>
+                                </tr>
+                            {{ else }}
+                                {{ range .Products }}
+                                <tr>
+                                    <td class="px-4 py-3">
+                                        <div class="d-flex flex-column">
+                                            <span class="fw-bold text-dark">{{ .name }}</span>
+                                            <span class="smaller text-muted">SKU: {{ .sku_code }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-3">
+                                        <span class="badge bg-light text-dark border-0 px-2 py-1">
+                                            {{ .batch_number }}
+                                        </span>
+                                    </td>
+                                    <td class="py-3">
+                                        <span class="smaller text-muted">{{ formatShortDate .expiry_date }}</span>
+                                    </td>
+                                    <td class="py-3 text-center">
+                                        <span class="fw-bold">{{ .current_stock }}</span>
+                                        <span class="smaller text-muted">{{ .unit }}</span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="input-group input-group-sm">
+                                            <input type="hidden" name="unit_{{ .batch_id }}" value="{{ .unit }}">
+                                            <input type="hidden" name="items_per_unit_{{ .batch_id }}" value="{{ .items_per_unit }}">
+                                            <input type="number" 
+                                                   name="actual_stock_{{ .batch_id }}" 
+                                                   class="form-control text-center border-0 bg-light rounded-3 py-2 shadow-none" 
+                                                   placeholder="{{ .current_stock }}"
+                                                   min="0">
+                                            <span class="input-group-text bg-white border-0">{{ .unit }}</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {{ end }}
+                            {{ end }}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end mb-5">
+                <button type="submit" class="btn btn-primary rounded-3 px-5 py-2 shadow-sm d-flex align-items-center gap-2">
+                    <i data-lucide="save" style="width: 20px; height: 20px;"></i>
+                    <span class="fw-bold">{{ t "save_adjustments" .Lang }}</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</main>
+{{ end }}

@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="{{ .Lang }}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ .PageTitle }} - {{ .GlobalSettings.BusinessName }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/static/assets/css/pos.css" />
+    <meta name="csrf-token" content="{{ .CSRFToken }}" />
+    <script>
+      // Global Fetch Interceptor for CSRF (copied from base.html for standalone page)
+      const originalFetch = window.fetch;
+      window.fetch = function (url, options = {}) {
+        if (
+          options.method &&
+          ["POST", "PUT", "DELETE", "PATCH"].includes(
+            options.method.toUpperCase(),
+          )
+        ) {
+          options.headers = options.headers || {};
+          const token = document
+            .querySelector('meta[name="csrf-token"]')
+            .getAttribute("content");
+          if (token) {
+            options.headers["X-CSRF-TOKEN"] = token;
+          }
+        }
+        return originalFetch(url, options);
+      };
+    </script>
+  </head>
+  <body class="pos-body">
+    <header class="pos-header">
+      <div class="d-flex align-items-center gap-3">
+        <a href="/dashboard" class="header-btn" title="{{ t `back_to_dashboard` .Lang }}">
+          <i data-lucide="layout-dashboard" style="width: 18px"></i>
+        </a>
+        <span class="logo-text d-none d-lg-block"
+          >{{ .GlobalSettings.BusinessName }}
+          <span class="text-primary">POS</span></span
+        >
+        <div
+          class="divider-v d-none d-lg-block"
+          style="
+            width: 1px;
+            height: 24px;
+            background: #e2e8f0;
+            margin: 0 0.5rem;
+          "
+        ></div>
+        <a href="/sales-history" class="header-btn" title="{{ t `sales_history` .Lang }}">
+          <i data-lucide="history" style="width: 18px"></i>
+        </a>
+      </div>
+
+      <div class="search-container">
+        <i data-lucide="search" class="search-icon"></i>
+        <input
+          type="text"
+          id="product-search"
+          class="search-input"
+          placeholder="{{ t `pos_search_placeholder_full` .Lang }}"
+          hx-get="/pos/search"
+          hx-trigger="keyup changed delay:300ms, search"
+          hx-target="#products-display"
+          name="q"
+        />
+        <span class="kbd-hint d-none d-md-inline">/</span>
+      </div>
+
+      <div class="d-flex align-items-center gap-3">
+        <!-- Live Clock -->
+        <div
+          class="topbar-clock d-none d-md-flex me-2"
+          id="clock-container"
+          data-timezone="{{ .GlobalSettings.Timezone }}"
+          data-lang="{{ .Lang }}"
+        >
+          <span id="global-live-clock">--:--:--</span>
+          <span id="global-live-date">--------</span>
+        </div>
+
+        <button
+          class="header-btn"
+          onclick="toggleFullScreen()"
+          title="{{ t `toggle_fullscreen` .Lang }}"
+        >
+          <i data-lucide="maximize" id="fs-icon" style="width: 18px"></i>
+        </button>
+
+        <div
+          class="user-info d-flex align-items-center gap-2 ps-3 border-start"
+        >
+          <div class="text-end d-none d-md-block">
+            <div class="fw-bold small" style="line-height: 1">
+              {{ .CurrentUser.Username }}
+            </div>
+            <div class="text-muted smaller">{{ .CurrentUser.Role }}</div>
+          </div>
+          <div
+            class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold"
+            style="width: 36px; height: 36px; font-size: 0.9rem"
+          >
+            {{ firstChar .CurrentUser.Username }}
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="pos-container">
+      <div class="products-panel">
+        <div class="categories-header mb-4 overflow-auto d-flex gap-2 pb-2">
+          <div class="category-pill active" onclick="filterCategory(this, '')">
+            {{ t "all_categories" .Lang }}
+          </div>
+          {{ range .Categories }}
+          <div class="category-pill" onclick="filterCategory(this, '{{ . }}')">
+            {{ . }}
+          </div>
+          {{ end }}
+        </div>
+
+        <div id="products-display" class="products-grid">
+          {{ template "_search_results.html" . }}
+        </div>
+      </div>
+
+      <div class="cart-panel">
+        <div
+          class="p-3 border-bottom d-flex justify-content-between align-items-center"
+        >
+          <h5 class="mb-0 fw-bold">{{ t "current_order" .Lang }}</h5>
+          <button
+            class="btn btn-sm btn-light text-danger border-0"
+            onclick="clearCart()"
+          >
+            <i data-lucide="trash-2" style="width: 16px"></i>
+          </button>
+        </div>
+
+        <div id="cart-items" class="cart-items">
+          <!-- Cart items will be injected here via pos.js -->
+        </div>
+
+        <div class="cart-footer">
+          <!-- Customer info -->
+          <div class="mb-3">
+            <input
+              type="text"
+              id="customer_name"
+              class="form-control form-control-sm rounded-2 border-light-subtle shadow-none"
+              placeholder="{{ t `pos_customer_name_optional` .Lang }}"
+            />
+          </div>
+
+          <div class="d-flex flex-column gap-2 mb-4">
+            <div class="d-flex justify-content-between text-muted small">
+              <span>{{ t "pos_subtotal" .Lang }}</span>
+              <span id="subtotal-display">Rp 0</span>
+            </div>
+            <div class="d-flex justify-content-between text-muted small">
+              <span>{{ t "pos_discount" .Lang }}</span>
+              <div class="input-group input-group-sm" style="width: 120px">
+                <span class="input-group-text border-0 bg-transparent ps-0"
+                  >Rp</span
+                >
+                <input
+                  type="number"
+                  id="discount-input"
+                  class="form-control border-0 bg-transparent text-end p-0 shadow-none fw-bold"
+                  value="0"
+                  onchange="calculateTotal()"
+                />
+              </div>
+            </div>
+            <hr class="my-1" />
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="fw-bold">{{ t "pos_total" .Lang }}</span>
+              <span id="total-display" class="FS-4 fw-800 text-primary"
+                >Rp 0</span
+              >
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="small fw-bold text-muted mb-2 d-block"
+              >{{ t "pos_payment_method" .Lang }}</label
+            >
+            <div class="d-flex gap-2">
+              <input
+                type="radio"
+                class="btn-check"
+                name="payment_method"
+                id="pay_cash"
+                value="cash"
+                checked
+              />
+              <label
+                class="btn btn-outline-light text-dark border flex-grow-1 py-2 rounded-3 small fw-bold"
+                for="pay_cash"
+              >
+                <i data-lucide="banknote" class="me-1" style="width: 14px"></i>
+                {{ t "pos_cash" .Lang }}
+              </label>
+
+              <input
+                type="radio"
+                class="btn-check"
+                name="payment_method"
+                id="pay_transfer"
+                value="transfer"
+              />
+              <label
+                class="btn btn-outline-light text-dark border flex-grow-1 py-2 rounded-3 small fw-bold"
+                for="pay_transfer"
+              >
+                <i
+                  data-lucide="credit-card"
+                  class="me-1"
+                  style="width: 14px"
+                ></i>
+                {{ t "pos_transfer" .Lang }}
+              </label>
+            </div>
+          </div>
+
+          <button
+            id="checkout-btn"
+            class="checkout-btn"
+            onclick="processCheckout()"
+            disabled
+          >
+            {{ t "pos_complete_transaction" .Lang }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Consolidated POS Logic -->
+    <script src="/static/assets/js/pos.js"></script>
+  </body>
+</html>

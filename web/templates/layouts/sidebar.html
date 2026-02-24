@@ -1,0 +1,99 @@
+{{ define "sidebar" }}
+<div class="sidebar">
+    <div class="sidebar-header">
+        <i data-lucide="layers" class="logo-icon" style="color: #ffffff; width: 32px; height: 32px;"></i>
+        <span class="logo">{{ .GlobalSettings.BusinessName }}</span>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="sidebar-section-label">{{ t "main_menu" .Lang }}</div>
+        <a href="/dashboard" class="sidebar-item {{ if eq .currentPage "dashboard" }}active{{ end }}">
+            <i data-lucide="layout-dashboard" style="width: 20px; height: 20px;"></i>
+            {{ t "dashboard" .Lang }}
+        </a>
+        <a href="/pos" class="sidebar-item {{ if eq .currentPage "pos" }}active{{ end }}">
+            <i data-lucide="shopping-cart" style="width: 20px; height: 20px;"></i>
+            {{ t "pos" .Lang }}
+        </a>
+
+        <div class="sidebar-section-label">{{ t "operations" .Lang }}</div>
+        <!-- Inventory Group -->
+        <div class="sidebar-group {{ if or (eq .currentPage "inventory") (eq .currentPage "stock_check") }}open{{ end }}" id="inventoryGroup">
+            <div class="sidebar-group-header" onclick="toggleSidebarGroup('inventoryGroup')">
+                <div class="group-title">
+                    <i data-lucide="package" style="width: 20px; height: 20px;"></i>
+                    {{ t "inventory" .Lang }}
+                </div>
+                <i data-lucide="chevron-down" class="chevron" style="width: 16px; height: 16px;"></i>
+            </div>
+            <div class="sidebar-group-items">
+                <a href="/products" class="sidebar-sub-item {{ if eq .currentPage "inventory" }}active{{ end }}">
+                    {{ t "manage_products" .Lang }}
+                </a>
+                <a href="/inventory/check" class="sidebar-sub-item {{ if eq .currentPage "stock_check" }}active{{ end }}">
+                    {{ t "inventory_check" .Lang }}
+                </a>
+            </div>
+        </div>
+
+        <!-- Transactions Group -->
+        <div class="sidebar-group {{ if or (eq .currentPage "sales_history") (eq .currentPage "returns") }}open{{ end }}" id="transactionsGroup">
+            <div class="sidebar-group-header" onclick="toggleSidebarGroup('transactionsGroup')">
+                <div class="group-title">
+                    <i data-lucide="file-text" style="width: 20px; height: 20px;"></i>
+                    {{ t "transactions" .Lang }}
+                </div>
+                <i data-lucide="chevron-down" class="chevron" style="width: 16px; height: 16px;"></i>
+            </div>
+            <div class="sidebar-group-items">
+                <a href="/sales-history" class="sidebar-sub-item {{ if eq .currentPage "sales_history" }}active{{ end }}">
+                    {{ t "sales_history" .Lang }}
+                </a>
+                <a href="/sales/return" class="sidebar-sub-item {{ if eq .currentPage "returns" }}active{{ end }}">
+                    {{ t "sales_return" .Lang }}
+                </a>
+            </div>
+        </div>
+
+        {{ if eq .CurrentUser.Role "admin" }}
+            <div class="sidebar-section-label">{{ t "analytics" .Lang }}</div>
+            <div class="sidebar-group {{ if eq .currentPage "reports" }}open{{ end }}" id="reportsGroup">
+                <div class="sidebar-group-header" onclick="toggleSidebarGroup('reportsGroup')">
+                    <div class="group-title">
+                        <i data-lucide="bar-chart-3" style="width: 20px; height: 20px;"></i>
+                        {{ t "reports_analytics" .Lang }}
+                    </div>
+                    <i data-lucide="chevron-down" class="chevron" style="width: 16px; height: 16px;"></i>
+                </div>
+                <div class="sidebar-group-items">
+                    <a href="/reports" class="sidebar-sub-item {{ if eq .currentPage "reports" }}active{{ end }}">
+                        {{ t "reports_hub" .Lang }}
+                    </a>
+                </div>
+            </div>
+
+            <div class="sidebar-section-label">{{ t "system" .Lang }}</div>
+            <a href="/activity-log" class="sidebar-item {{ if eq .currentPage "activity_log" }}active{{ end }}">
+                <i data-lucide="activity" style="width: 20px; height: 20px;"></i>
+                {{ t "activity_log" .Lang }}
+            </a>
+            <a href="/settings" class="sidebar-item {{ if eq .currentPage "settings" }}active{{ end }}">
+                <i data-lucide="settings" style="width: 20px; height: 20px;"></i>
+                {{ t "settings" .Lang }}
+            </a>
+        {{ end }}
+    </nav>
+</div>
+
+<script>
+function toggleSidebarGroup(id) {
+    const group = document.getElementById(id);
+    group.classList.toggle('open');
+    
+    // Refresh Lucide icons if any were dynamic, though here it's just rotating
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+}
+</script>
+{{ end }}

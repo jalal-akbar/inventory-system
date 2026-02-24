@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="{{ .Lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ t "login_title" .Lang }} - {{ .GlobalSettings.BusinessName }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #F27121;
+            --primary-hover: #e65100;
+            --bg-gradient: linear-gradient(135deg, #FF8C00 0%, #F27121 100%);
+            --glass-bg: rgba(255, 255, 255, 0.9);
+            --glass-border: rgba(0, 0, 0, 0.1);
+            --text-main: #212529;
+            --text-dim: #6c757d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            color: var(--text-main);
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 2.5rem;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .login-header h1 {
+            font-weight: 800;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+        }
+
+        .login-header p {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            background: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(242, 113, 33, 0.1);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 0.85rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        .btn-login:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(242, 113, 33, 0.3);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .error-message {
+            background: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+            padding: 0.85rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .footer {
+            margin-top: 2.5rem;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+    </style>
+    <!-- Password Toggle CSS -->
+    <link rel="stylesheet" href="/static/assets/css/password_toggle.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>{{ .GlobalSettings.BusinessName }}</h1>
+            <p>{{ t "please_login" .Lang }}</p>
+        </div>
+
+        {{ if .Error }}
+            <div class="error-message">
+                {{ .Error }}
+            </div>
+        {{ end }}
+
+        <form method="POST" action="/login" id="loginForm">
+            <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
+            <input type="hidden" name="detected_timezone" id="detected_timezone">
+            <div class="form-group">
+                <label for="username">{{ t "username" .Lang }}</label>
+                <input type="text" id="username" name="username" class="form-input" placeholder="{{ t `enter_username` .Lang }}" required autofocus>
+            </div>
+            <div class="form-group">
+                <label for="password">{{ t "password" .Lang }}</label>
+                <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required data-toggle-password>
+            </div>
+            <button type="submit" class="btn-login">{{ t "login_button" .Lang }}</button>
+        </form>
+
+        <script>
+            // Automatically detect user's timezone
+            try {
+                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                document.getElementById('detected_timezone').value = timezone || 'Asia/Jakarta';
+            } catch (e) {
+                document.getElementById('detected_timezone').value = 'Asia/Jakarta';
+            }
+        </script>
+
+        <div class="footer">
+            &copy; 2026 {{ .GlobalSettings.BusinessName }}. {{ t "all_rights_reserved" .Lang }}
+        </div>
+    </div>
+    
+    <!-- Password Toggle JS -->
+    <script src="/static/assets/js/password_toggle.js"></script>
+</body>
+</html>

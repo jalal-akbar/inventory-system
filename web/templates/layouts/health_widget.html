@@ -1,0 +1,37 @@
+{{ define "health_widget" }}
+<div class="card border-0 p-4 rounded-4 shadow-sm" style="background: {{ if eq .SystemHealth.Status "ok" }}#f0fdf4{{ else if eq .SystemHealth.Status "degraded" }}#fffcf0{{ else }}#fff5f5{{ end }}; border: 1px solid {{ if eq .SystemHealth.Status "ok" }}#dcfce7{{ else if eq .SystemHealth.Status "degraded" }}#fef3c7{{ else }}#fee2e2{{ end }}; position: relative; border-left: 4px solid {{ if eq .SystemHealth.Status "ok" }}#22c55e{{ else if eq .SystemHealth.Status "degraded" }}#f59e0b{{ else }}#ef4444{{ end }} !important;">
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="bg-white p-2 rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+            <div class="rounded-circle {{ if eq .SystemHealth.Status "ok" }}bg-success{{ else if eq .SystemHealth.Status "degraded" }}bg-warning{{ else }}bg-danger{{ end }}" style="width: 12px; height: 12px; animation: pulse 2s infinite;"></div>
+        </div>
+        <div class="flex-grow-1">
+            <h6 class="fw-bold mb-0" style="color: #1e293b;">
+                <i data-lucide="{{ if eq .SystemHealth.Status "ok" }}check-circle{{ else if eq .SystemHealth.Status "degraded" }}alert-triangle{{ else }}x-circle{{ end }}" class="me-1" style="width: 18px; height: 18px; color: {{ if eq .SystemHealth.Status "ok" }}#22c55e{{ else if eq .SystemHealth.Status "degraded" }}#f59e0b{{ else }}#ef4444{{ end }};"></i>
+                {{ t "system_status" .Lang }}: 
+                <span class="{{ if eq .SystemHealth.Status "ok" }}text-success{{ else if eq .SystemHealth.Status "degraded" }}text-warning{{ else }}text-danger{{ end }}">{{ t .SystemHealth.Status .Lang }}</span>
+            </h6>
+        </div>
+    </div>
+    
+    <p class="small text-muted mb-4 fw-medium">{{ .SystemHealth.Message }}</p>
+    
+    <div class="d-flex flex-column gap-2">
+        {{ range $name, $check := .SystemHealth.Checks }}
+            <div class="d-flex align-items-center gap-2">
+                <i data-lucide="{{ if eq $check.Status "ok" }}check{{ else if eq $check.Status "warning" }}alert-circle{{ else }}x{{ end }}" style="width: 16px; height: 16px; color: {{ if eq $check.Status "ok" }}#10b981{{ else if eq $check.Status "warning" }}#f59e0b{{ else }}#ef4444{{ end }};"></i>
+                <span class="text-muted text-capitalize small">{{ $name }}:</span>
+                <span class="small fw-bold {{ if eq $check.Status "ok" }}text-success{{ else if eq $check.Status "warning" }}text-warning{{ else }}text-danger{{ end }}">{{ $check.Message }}</span>
+            </div>
+        {{ end }}
+    </div>
+</div>
+
+<style>
+@keyframes pulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+</style>
+{{ end }}
+

@@ -1,0 +1,29 @@
+# Binaries
+rabella-app
+rabella-app.exe
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Database
+inventory.db
+inventory.db-shm
+inventory.db-wal
+
+# Sensitive files
+.env
+.cookie
+
+# Dependencies
+vendor/
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

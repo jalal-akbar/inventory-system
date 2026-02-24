@@ -1,0 +1,125 @@
+{{ define "topbar" }}
+<header class="topbar">
+    <div class="d-flex align-items-center">
+        <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">
+            <i data-lucide="menu"></i>
+        </button>
+        <!-- Page Title / Breadcrumb Area -->
+        <div class="topbar-title">
+            <h5 class="mb-0 fw-bold" id="pageTitle">
+                {{ .pageTitle }}
+            </h5>
+            <!-- Breadcrumb Navigation -->
+            {{ if .breadcrumb }}
+            <nav aria-label="breadcrumb" class="d-none d-md-block" id="breadcrumbNav">
+                <ol class="breadcrumb mb-0 small">
+                    {{ range .breadcrumb }}
+                        {{ if .url }}
+                            <li class="breadcrumb-item">
+                                <a href="{{ .url }}" class="text-decoration-none">
+                                    {{ .label }}
+                                </a>
+                            </li>
+                        {{ else }}
+                            <li class="breadcrumb-item active" aria-current="page">
+                                {{ .label }}
+                            </li>
+                        {{ end }}
+                    {{ end }}
+                </ol>
+            </nav>
+            {{ end }}
+        </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-3">
+        {{ if eq .CurrentUser.Role "admin" }}
+        <div class="notification-dropdown">
+            <a href="javascript:void(0)" class="notification-badge" id="pendingBell" title="Click to view pending requests">
+                <i data-lucide="bell" style="width: 22px; height: 22px;"></i>
+                {{ if gt .PendingCounts.Total 0 }}
+                    <span class="badge-count" id="pendingCount">{{ .PendingCounts.Total }}</span>
+                {{ end }}
+            </a>
+            <div class="notification-menu">
+                <div class="notification-header">{{ t "pending_approvals" .Lang }}</div>
+                {{ if gt .PendingCounts.Total 0 }}
+                    {{ if gt .PendingCounts.Voids 0 }}
+                        <a href="/admin/approvals?type=void" class="notification-item">
+                            <i data-lucide="corner-up-left" class="text-danger"></i>
+                            <span>{{ .PendingCounts.Voids }} {{ t "void_requests" .Lang }}</span>
+                        </a>
+                    {{ end }}
+                    {{ if gt .PendingCounts.Stock 0 }}
+                        <a href="/admin/approvals?type=stock" class="notification-item">
+                            <i data-lucide="package" class="text-success"></i>
+                            <span>{{ .PendingCounts.Stock }} {{ t "new_stock_unverified" .Lang }}</span>
+                        </a>
+                    {{ end }}
+                    {{ if gt .PendingCounts.Unverified 0 }}
+                        <a href="/admin/approvals?type=unverified" class="notification-item">
+                            <i data-lucide="package" class="text-info"></i>
+                            <span>{{ .PendingCounts.Unverified }} {{ t "products_batches" .Lang }}</span>
+                        </a>
+                    {{ end }}
+                    <hr class="dropdown-divider">
+                    <a href="/admin/approvals" class="notification-item justify-content-center text-primary fw-bold">{{ t "view_all" .Lang }}</a>
+                {{ else }}
+                    <div class="notification-empty">{{ t "no_pending_tasks" .Lang }}</div>
+                {{ end }}
+            </div>
+        </div>
+        {{ end }}
+
+        <!-- Global Live Clock -->
+        <div class="topbar-clock d-none d-lg-flex flex-column align-items-end me-2" 
+             id="clock-container"
+             data-timezone="{{ .GlobalSettings.Timezone }}"
+             data-lang="{{ .Lang }}">
+            <span id="global-live-clock" class="fw-bold" style="font-family: inherit; font-size: 1rem; line-height: 1.2; color: var(--text-main);">
+                <!-- Initial time via JS or static -->
+            </span>
+            <span id="global-live-date" class="text-muted" style="font-size: 0.75rem; line-height: 1;">
+                <!-- Initial date via JS or static -->
+            </span>
+        </div>
+
+        <div class="d-flex align-items-center me-2 border-start ps-3" style="font-size: 0.85rem;">
+            <a href="/api/user/set-lang?lang=en" class="text-decoration-none {{ if eq .Lang "en" }}fw-bold text-primary{{ else }}text-muted{{ end }}">EN</a>
+            <span class="text-muted mx-1">|</span>
+            <a href="/api/user/set-lang?lang=id" class="text-decoration-none {{ if eq .Lang "id" }}fw-bold text-primary{{ else }}text-muted{{ end }}">ID</a>
+        </div>
+
+        <div class="user-profile" id="userProfileDropdown">
+            <div class="user-avatar">
+                {{ firstChar .CurrentUser.Username }}
+            </div>
+            <div class="user-info d-none d-md-block">
+                <span class="user-name">{{ .CurrentUser.Username }}</span>
+                <span class="user-role">{{ .CurrentUser.Role }}</span>
+            </div>
+            <i data-lucide="chevron-down" class="dropdown-icon" style="width: 16px; height: 16px; margin-left: 2px; color: var(--text-muted);"></i>
+            
+            <div class="user-dropdown" id="userDropdownContent">
+                <a href="/account-settings" class="dropdown-item">
+                    <i data-lucide="user" style="width: 18px; height: 18px;"></i>
+                    <span>{{ t "my_account" .Lang }}</span>
+                </a>
+                
+                {{ if eq .CurrentUser.Role "admin" }}
+                <a href="/settings" class="dropdown-item">
+                    <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
+                    <span>{{ t "settings" .Lang }}</span>
+                </a>
+                {{ end }}
+                
+                <hr class="dropdown-divider">
+                <a href="/logout" class="dropdown-item logout-item">
+                    <i data-lucide="log-out" style="width: 18px; height: 18px;"></i>
+                    <span>{{ t "logout" .Lang }}</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</header>
+{{ end }}

@@ -1,0 +1,9 @@
+{{ define "footer" }}
+<footer class="app-footer" style="text-align: center; width: 100%; padding: 1rem 0; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 0.85rem;">
+    &copy; 2026 {{ .GlobalSettings.BusinessName }}. {{ t "all_rights_reserved" .Lang }} | System v1.0 | 
+    <span class="badge bg-light text-dark" style="font-weight: 500;">
+        <i data-lucide="map-pin" style="width: 12px; height: 12px; vertical-align: middle;"></i> 
+        {{ .GlobalSettings.Timezone }}
+    </span>
+</footer>
+{{ end }}
