@@ -69,6 +69,10 @@ document.addEventListener('DOMContentLoaded', () => {
         searchResults.style.display = 'block';
     }
 
+    // Notification Dropdown Elements
+    const notificationBell = document.getElementById('pendingBell');
+    const notificationMenu = document.querySelector('.notification-menu');
+
     // User Profile Dropdown Logic
     const userProfile = document.getElementById('userProfileDropdown');
     const userDropdown = document.getElementById('userDropdownContent');
@@ -82,14 +86,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // Close notification menu if open
             if (notificationMenu) {
                 notificationMenu.classList.remove('show');
-                notificationBell.classList.remove('active');
+                if (notificationBell) notificationBell.classList.remove('active');
             }
         });
     }
-
-    // Notification Dropdown Logic
-    const notificationBell = document.getElementById('pendingBell');
-    const notificationMenu = document.querySelector('.notification-menu');
 
     if (notificationBell && notificationMenu) {
         notificationBell.addEventListener('click', (e) => {
@@ -100,14 +100,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // Close user dropdown if open
             if (userDropdown) {
                 userDropdown.classList.remove('show');
-                userProfile.classList.remove('active');
+                if (userProfile) userProfile.classList.remove('active');
             }
         });
     }
 
     // Close dropdowns when clicking outside
     document.addEventListener('click', (e) => {
-        if (userProfile && !userProfile.contains(e.target)) {
+        if (userProfile && userDropdown && !userProfile.contains(e.target)) {
             userDropdown.classList.remove('show');
             userProfile.classList.remove('active');
         }
@@ -187,10 +187,10 @@ function updatePendingCount() {
             badge.innerText = data.count;
             if (data.count > 0) {
                 badge.style.display = 'flex';
-                document.getElementById('pendingBadge').classList.add('has-notifications');
+                if (notificationBell) notificationBell.classList.add('has-notifications');
             } else {
                 badge.style.display = 'none';
-                document.getElementById('pendingBadge').classList.remove('has-notifications');
+                if (notificationBell) notificationBell.classList.remove('has-notifications');
             }
         })
         .catch(err => console.error('Error fetching pending count:', err));

@@ -101,20 +101,34 @@
           <i data-lucide="maximize" id="fs-icon" style="width: 18px"></i>
         </button>
 
-        <div
-          class="user-info d-flex align-items-center gap-2 ps-3 border-start"
-        >
-          <div class="text-end d-none d-md-block">
-            <div class="fw-bold small" style="line-height: 1">
-              {{ .CurrentUser.Username }}
-            </div>
-            <div class="text-muted smaller">{{ .CurrentUser.Role }}</div>
-          </div>
-          <div
-            class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold"
-            style="width: 36px; height: 36px; font-size: 0.9rem"
-          >
+        <div class="user-profile" id="userProfileDropdown">
+          <div class="user-avatar" style="width: 36px; height: 36px; background: var(--primary-color); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;">
             {{ firstChar .CurrentUser.Username }}
+          </div>
+          <div class="user-info d-none d-md-block text-end">
+            <span class="user-name fw-bold small" style="display: block; line-height: 1;">{{ .CurrentUser.Username }}</span>
+            <span class="user-role text-muted smaller" style="text-transform: capitalize;">{{ .CurrentUser.Role }}</span>
+          </div>
+          <i data-lucide="chevron-down" class="dropdown-icon" style="width: 16px; height: 16px; margin-left: 2px; color: var(--text-muted);"></i>
+          
+          <div class="user-dropdown" id="userDropdownContent" style="position: absolute; top: calc(100% + 8px); right: 0; width: 240px; background: white; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; padding: 0.5rem; opacity: 0; visibility: hidden; transform: translateY(10px); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000;">
+              <a href="/account-settings" class="dropdown-item d-flex align-items-center gap-2 p-2 text-decoration-none text-dark" style="font-size: 0.9rem;">
+                  <i data-lucide="user" style="width: 18px; height: 18px;"></i>
+                  <span>{{ t "my_account" .Lang }}</span>
+              </a>
+              
+              {{ if eq .CurrentUser.Role "admin" }}
+              <a href="/settings" class="dropdown-item d-flex align-items-center gap-2 p-2 text-decoration-none text-dark" style="font-size: 0.9rem;">
+                  <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
+                  <span>{{ t "settings" .Lang }}</span>
+              </a>
+              {{ end }}
+              
+              <hr class="my-1 border-light">
+              <a href="/logout" class="dropdown-item d-flex align-items-center gap-2 p-2 text-decoration-none text-danger" style="font-size: 0.9rem;">
+                  <i data-lucide="log-out" style="width: 18px; height: 18px;"></i>
+                  <span>{{ t "logout" .Lang }}</span>
+              </a>
           </div>
         </div>
       </div>
@@ -250,6 +264,7 @@
     </div>
 
     <!-- Consolidated POS Logic -->
+    <script src="/static/assets/js/main.js"></script>
     <script src="/static/assets/js/pos.js"></script>
   </body>
 </html>
