@@ -24,8 +24,8 @@ func NewPosHandler(base BaseHandler, pService service.ProductService, sService s
 }
 
 func (h *PosHandler) Index(w http.ResponseWriter, r *http.Request) {
-	// Fetch initial products (limit 50)
-	products, err := h.productService.SearchProducts("", "")
+	// Fetch initial products (limit 10 best sellers)
+	products, err := h.productService.GetBestSellingProducts(10)
 	if err != nil {
 		products = []map[string]interface{}{}
 	}

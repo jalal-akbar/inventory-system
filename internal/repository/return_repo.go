@@ -11,18 +11,27 @@ type ReturnRepository interface {
 	GetReturnsBySaleID(saleID int) ([]domain.Return, error)
 	GetReturnedQtyBySaleItemID(saleItemID int) (int, error)
 	GetReturnWithDetails(returnID int) (*domain.ReturnDetail, error)
+	WithTx(tx *sql.Tx) ReturnRepository
 }
 
 type mysqlReturnRepository struct {
-	db *sql.DB
+	db DBExecutor
 }
 
 func NewReturnRepository(db *sql.DB) ReturnRepository {
 	return &mysqlReturnRepository{db: db}
 }
 
+func (r *mysqlReturnRepository) getDB() DBExecutor {
+	return r.db
+}
+
+func (r *mysqlReturnRepository) WithTx(tx *sql.Tx) ReturnRepository {
+	return &mysqlReturnRepository{db: tx}
+}
+
 func (r *mysqlReturnRepository) CreateReturn(ret *domain.Return) (int, error) {
-	res, err := r.db.Exec(`
+	res, err := r.getDB().Exec(`
 		INSERT INTO returns (sale_id, user_id, total_refund, reason, created_at)
 		VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
 		ret.SaleID, ret.UserID, ret.TotalRefund, ret.Reason)
@@ -34,7 +43,7 @@ func (r *mysqlReturnRepository) CreateReturn(ret *domain.Return) (int, error) {
 }
 
 func (r *mysqlReturnRepository) CreateReturnItem(i *domain.ReturnItem) error {
-	_, err := r.db.Exec(`
+	_, err := r.getDB().Exec(`
 		INSERT INTO return_items (return_id, sale_item_id, quantity, refund_amount, condition_status)
 		VALUES (?, ?, ?, ?, ?)`,
 		i.ReturnID, i.SaleItemID, i.Quantity, i.RefundAmount, i.ConditionStatus)
@@ -42,7 +51,7 @@ func (r *mysqlReturnRepository) CreateReturnItem(i *domain.ReturnItem) error {
 }
 
 func (r *mysqlReturnRepository) GetReturnsBySaleID(saleID int) ([]domain.Return, error) {
-	rows, err := r.db.Query(`
+	rows, err := r.getDB().Query(`
 		SELECT id, sale_id, user_id, total_refund, reason, created_at
 		FROM returns WHERE sale_id = ?`, saleID)
 	if err != nil {
@@ -67,7 +76,7 @@ func (r *mysqlReturnRepository) GetReturnsBySaleID(saleID int) ([]domain.Return,
 
 func (r *mysqlReturnRepository) GetReturnedQtyBySaleItemID(saleItemID int) (int, error) {
 	var total int
-	err := r.db.QueryRow(`
+	err := r.getDB().QueryRow(`
 		SELECT COALESCE(SUM(quantity), 0)
 		FROM return_items WHERE sale_item_id = ?`, saleItemID).Scan(&total)
 	return total, err
@@ -77,7 +86,7 @@ func (r *mysqlReturnRepository) GetReturnWithDetails(returnID int) (*domain.Retu
 	detail := &domain.ReturnDetail{}
 	var reason sql.NullString
 
-	err := r.db.QueryRow(`
+	err := r.getDB().QueryRow(`
 		SELECT id, sale_id, user_id, total_refund, reason, created_at
 		FROM returns WHERE id = ?`, returnID).Scan(
 		&detail.ID, &detail.SaleID, &detail.UserID, &detail.TotalRefund, &reason, &detail.CreatedAt)
@@ -88,7 +97,7 @@ func (r *mysqlReturnRepository) GetReturnWithDetails(returnID int) (*domain.Retu
 		detail.Reason = &reason.String
 	}
 
-	rows, err := r.db.Query(`
+	rows, err := r.getDB().Query(`
 		SELECT ri.id, ri.return_id, ri.sale_item_id, ri.quantity, ri.refund_amount, ri.condition_status,
 		       p.name, pb.batch_number
 		FROM return_items ri

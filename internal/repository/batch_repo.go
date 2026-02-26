@@ -19,18 +19,32 @@ type ProductBatchRepository interface {
 	GetExpiredCount() (int, error)
 	GetExpiringBatches(days int) ([]map[string]interface{}, error)
 	FindByID(id int) (*domain.ProductBatch, error)
+	WithTx(tx *sql.Tx) ProductBatchRepository
 }
 
 type mysqlBatchRepository struct {
-	db *sql.DB
+	db         DBExecutor // Use DBExecutor interface
+	originalDB *sql.DB    // Keep original for WithTx
 }
 
+// We need to define Executor inside the repo or use the one I created.
+// To avoid circular dependency or import issues if I just created executor.go in same package,
+// I'll just use the local package interface.
+
 func NewBatchRepository(db *sql.DB) ProductBatchRepository {
-	return &mysqlBatchRepository{db: db}
+	return &mysqlBatchRepository{db: db, originalDB: db}
+}
+
+func (r *mysqlBatchRepository) getDB() DBExecutor {
+	return r.db
+}
+
+func (r *mysqlBatchRepository) WithTx(tx *sql.Tx) ProductBatchRepository {
+	return &mysqlBatchRepository{db: tx, originalDB: r.originalDB}
 }
 
 func (r *mysqlBatchRepository) FindByProduct(productId int) ([]domain.ProductBatch, error) {
-	rows, err := r.db.Query("SELECT id, product_id, batch_number, expiry_date, current_stock, purchase_price, selling_price, is_verified, created_at FROM product_batches WHERE product_id = ? ORDER BY expiry_date ASC", productId)
+	rows, err := r.getDB().Query("SELECT id, product_id, batch_number, expiry_date, current_stock, purchase_price, selling_price, is_verified, created_at FROM product_batches WHERE product_id = ? ORDER BY expiry_date ASC", productId)
 	if err != nil {
 		return nil, err
 	}
@@ -48,28 +62,28 @@ func (r *mysqlBatchRepository) FindByProduct(productId int) ([]domain.ProductBat
 }
 
 func (r *mysqlBatchRepository) VerifyByProduct(productId int) error {
-	_, err := r.db.Exec("UPDATE product_batches SET is_verified = 1 WHERE product_id = ?", productId)
+	_, err := r.getDB().Exec("UPDATE product_batches SET is_verified = 1 WHERE product_id = ?", productId)
 	return err
 }
 
 func (r *mysqlBatchRepository) Verify(id int) error {
-	_, err := r.db.Exec("UPDATE product_batches SET is_verified = 1 WHERE id = ?", id)
+	_, err := r.getDB().Exec("UPDATE product_batches SET is_verified = 1 WHERE id = ?", id)
 	return err
 }
 
 func (r *mysqlBatchRepository) UpdateStock(id, quantity int) error {
-	_, err := r.db.Exec("UPDATE product_batches SET current_stock = current_stock + ? WHERE id = ?", quantity, id)
+	_, err := r.getDB().Exec("UPDATE product_batches SET current_stock = current_stock + ? WHERE id = ?", quantity, id)
 	return err
 }
 
 func (r *mysqlBatchRepository) GetPendingCount() (int, error) {
 	var count int
-	err := r.db.QueryRow("SELECT COUNT(*) FROM product_batches b JOIN products p ON b.product_id = p.id WHERE b.is_verified = 0 AND p.status = 'active'").Scan(&count)
+	err := r.getDB().QueryRow("SELECT COUNT(*) FROM product_batches b JOIN products p ON b.product_id = p.id WHERE b.is_verified = 0 AND p.status = 'active'").Scan(&count)
 	return count, err
 }
 
 func (r *mysqlBatchRepository) Create(b *domain.ProductBatch) (int, error) {
-	res, err := r.db.Exec("INSERT INTO product_batches (product_id, batch_number, expiry_date, current_stock, purchase_price, selling_price, is_verified, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+	res, err := r.getDB().Exec("INSERT INTO product_batches (product_id, batch_number, expiry_date, current_stock, purchase_price, selling_price, is_verified, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
 		b.ProductID, b.BatchNumber, b.ExpiryDate, b.CurrentStock, b.PurchasePrice, b.SellingPrice, b.IsVerified)
 	if err != nil {
 		return 0, err
@@ -80,7 +94,7 @@ func (r *mysqlBatchRepository) Create(b *domain.ProductBatch) (int, error) {
 
 func (r *mysqlBatchRepository) GetWithProduct(id int) (map[string]interface{}, error) {
 	query := "SELECT b.*, p.name as product_name FROM product_batches b JOIN products p ON b.product_id = p.id WHERE b.id = ?"
-	row := r.db.QueryRow(query, id)
+	row := r.getDB().QueryRow(query, id)
 
 	var b domain.ProductBatch
 	var productName string
@@ -95,7 +109,7 @@ func (r *mysqlBatchRepository) GetWithProduct(id int) (map[string]interface{}, e
 }
 
 func (r *mysqlBatchRepository) GetAvailableForProduct(productId int) ([]domain.ProductBatch, error) {
-	rows, err := r.db.Query("SELECT id, product_id, batch_number, expiry_date, current_stock, purchase_price, selling_price, is_verified FROM product_batches WHERE product_id = ? AND current_stock > 0 AND is_verified = 1 ORDER BY expiry_date ASC", productId)
+	rows, err := r.getDB().Query("SELECT id, product_id, batch_number, expiry_date, current_stock, purchase_price, selling_price, is_verified FROM product_batches WHERE product_id = ? AND current_stock > 0 AND is_verified = 1 ORDER BY expiry_date ASC", productId)
 	if err != nil {
 		return nil, err
 	}
@@ -113,19 +127,19 @@ func (r *mysqlBatchRepository) GetAvailableForProduct(productId int) ([]domain.P
 }
 
 func (r *mysqlBatchRepository) SetStock(id, stock int) error {
-	_, err := r.db.Exec("UPDATE product_batches SET current_stock = ? WHERE id = ?", stock, id)
+	_, err := r.getDB().Exec("UPDATE product_batches SET current_stock = ? WHERE id = ?", stock, id)
 	return err
 }
 
 func (r *mysqlBatchRepository) GetExpiringCount(days int) (int, error) {
 	var count int
-	err := r.db.QueryRow("SELECT COUNT(*) FROM product_batches WHERE expiry_date <= date('now', '+' || ? || ' days') AND expiry_date >= date('now') AND current_stock > 0", days).Scan(&count)
+	err := r.getDB().QueryRow("SELECT COUNT(*) FROM product_batches WHERE expiry_date <= date('now', '+' || ? || ' days') AND expiry_date >= date('now') AND current_stock > 0", days).Scan(&count)
 	return count, err
 }
 
 func (r *mysqlBatchRepository) GetExpiredCount() (int, error) {
 	var count int
-	err := r.db.QueryRow("SELECT COUNT(*) FROM product_batches WHERE expiry_date < date('now') AND current_stock > 0").Scan(&count)
+	err := r.getDB().QueryRow("SELECT COUNT(*) FROM product_batches WHERE expiry_date < date('now') AND current_stock > 0").Scan(&count)
 	return count, err
 }
 
@@ -139,7 +153,7 @@ func (r *mysqlBatchRepository) GetExpiringBatches(days int) ([]map[string]interf
 		AND b.current_stock > 0
 		ORDER BY b.expiry_date ASC
 	`
-	rows, err := r.db.Query(query, days)
+	rows, err := r.getDB().Query(query, days)
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +177,7 @@ func (r *mysqlBatchRepository) GetExpiringBatches(days int) ([]map[string]interf
 
 func (r *mysqlBatchRepository) FindByID(id int) (*domain.ProductBatch, error) {
 	b := &domain.ProductBatch{}
-	err := r.db.QueryRow("SELECT id, product_id, batch_number, expiry_date, current_stock, purchase_price, selling_price, is_verified, created_at FROM product_batches WHERE id = ?", id).
+	err := r.getDB().QueryRow("SELECT id, product_id, batch_number, expiry_date, current_stock, purchase_price, selling_price, is_verified, created_at FROM product_batches WHERE id = ?", id).
 		Scan(&b.ID, &b.ProductID, &b.BatchNumber, &b.ExpiryDate, &b.CurrentStock, &b.PurchasePrice, &b.SellingPrice, &b.IsVerified, &b.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {

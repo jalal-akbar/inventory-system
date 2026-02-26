@@ -8,7 +8,7 @@ type Sale struct {
 	TotalAmount        float64   `json:"total_amount"`
 	Profit             float64   `json:"profit"`
 	Discount           float64   `json:"discount"`
-	PaymentMethod      string    `json:"payment_method"` // Cash, Transfer, QRIS
+	PaymentMethod      string    `json:"payment_method"` // Cash, Transfer
 	CustomerName       *string   `json:"customer_name"`
 	DoctorName         *string   `json:"doctor_name"`
 	PrescriptionNumber *string   `json:"prescription_number"`

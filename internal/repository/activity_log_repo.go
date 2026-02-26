@@ -9,23 +9,32 @@ type ActivityLogRepository interface {
 	Log(userID int, action string) error
 	GetLatest(limit int) ([]domain.ActivityLog, error)
 	Search(startDate, endDate, sort string) ([]domain.ActivityLog, error)
+	WithTx(tx *sql.Tx) ActivityLogRepository
 }
 
 type mysqlActivityLogRepository struct {
-	db *sql.DB
+	db DBExecutor
 }
 
 func NewActivityLogRepository(db *sql.DB) ActivityLogRepository {
 	return &mysqlActivityLogRepository{db: db}
 }
 
+func (r *mysqlActivityLogRepository) getDB() DBExecutor {
+	return r.db
+}
+
+func (r *mysqlActivityLogRepository) WithTx(tx *sql.Tx) ActivityLogRepository {
+	return &mysqlActivityLogRepository{db: tx}
+}
+
 func (r *mysqlActivityLogRepository) Log(userID int, action string) error {
-	_, err := r.db.Exec("INSERT INTO activity_logs (user_id, action, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)", userID, action)
+	_, err := r.getDB().Exec("INSERT INTO activity_logs (user_id, action, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)", userID, action)
 	return err
 }
 
 func (r *mysqlActivityLogRepository) GetLatest(limit int) ([]domain.ActivityLog, error) {
-	rows, err := r.db.Query(`
+	rows, err := r.getDB().Query(`
 		SELECT al.id, al.user_id, u.username, al.action, al.created_at 
 		FROM activity_logs al 
 		LEFT JOIN users u ON al.user_id = u.id 
@@ -69,7 +78,7 @@ func (r *mysqlActivityLogRepository) Search(startDate, endDate, sort string) ([]
 	}
 	query += " ORDER BY al.created_at " + sort
 
-	rows, err := r.db.Query(query, params...)
+	rows, err := r.getDB().Query(query, params...)
 	if err != nil {
 		return nil, err
 	}

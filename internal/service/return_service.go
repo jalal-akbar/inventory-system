@@ -45,8 +45,14 @@ func (s *returnService) ProcessReturn(userID int, saleID int, reason string, ite
 	}
 	defer tx.Rollback()
 
+	// Wrap repos
+	returnRepo := s.returnRepo.WithTx(tx)
+	saleRepo := s.saleRepo.WithTx(tx)
+	batchRepo := s.batchRepo.WithTx(tx)
+	logRepo := s.logRepo.WithTx(tx)
+
 	// 1. Validate Sale
-	sale, err := s.saleRepo.FindByID(saleID)
+	sale, err := saleRepo.FindByID(saleID)
 	if err != nil {
 		return 0, err
 	}
@@ -58,7 +64,7 @@ func (s *returnService) ProcessReturn(userID int, saleID int, reason string, ite
 	}
 
 	// 2. Fetch Sale Items for price calculation and validation
-	saleItems, err := s.saleRepo.GetSaleItems(saleID)
+	saleItems, err := saleRepo.GetSaleItems(saleID)
 	if err != nil {
 		return 0, err
 	}
@@ -81,7 +87,7 @@ func (s *returnService) ProcessReturn(userID int, saleID int, reason string, ite
 		}
 
 		// Check already returned quantity
-		returnedQty, err := s.returnRepo.GetReturnedQtyBySaleItemID(inputItem.SaleItemID)
+		returnedQty, err := returnRepo.GetReturnedQtyBySaleItemID(inputItem.SaleItemID)
 		if err != nil {
 			return 0, err
 		}
@@ -103,7 +109,7 @@ func (s *returnService) ProcessReturn(userID int, saleID int, reason string, ite
 
 		// 3. Update Stock if condition is good
 		if inputItem.Condition == "good" {
-			if err := s.batchRepo.UpdateStock(si.BatchID, inputItem.Quantity); err != nil {
+			if err := batchRepo.UpdateStock(si.BatchID, inputItem.Quantity); err != nil {
 				return 0, fmt.Errorf("failed to update stock for batch ID %d: %v", si.BatchID, err)
 			}
 		}
@@ -123,7 +129,7 @@ func (s *returnService) ProcessReturn(userID int, saleID int, reason string, ite
 		ret.Reason = &reason
 	}
 
-	returnID, err := s.returnRepo.CreateReturn(ret)
+	returnID, err := returnRepo.CreateReturn(ret)
 	if err != nil {
 		return 0, err
 	}
@@ -131,13 +137,13 @@ func (s *returnService) ProcessReturn(userID int, saleID int, reason string, ite
 	// 5. Create Return Items
 	for _, ri := range returnItems {
 		ri.ReturnID = returnID
-		if err := s.returnRepo.CreateReturnItem(&ri); err != nil {
+		if err := returnRepo.CreateReturnItem(&ri); err != nil {
 			return 0, err
 		}
 	}
 
 	// 6. Log Activity
-	if err := s.logRepo.Log(userID, fmt.Sprintf("Processed Return #%d for Sale #%d - Total Refund: Rp %.2f", returnID, saleID, totalRefund)); err != nil {
+	if err := logRepo.Log(userID, fmt.Sprintf("Processed Return #%d for Sale #%d - Total Refund: Rp %.2f", returnID, saleID, totalRefund)); err != nil {
 		return 0, err
 	}
 

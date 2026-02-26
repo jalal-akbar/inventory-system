@@ -40,7 +40,11 @@ func (s *batchService) AddBatch(b *domain.ProductBatch, requestedBy int) (int, e
 	}
 	defer tx.Rollback()
 
-	bID, err := s.batchRepo.Create(b)
+	// Wrap repos
+	batchRepo := s.batchRepo.WithTx(tx)
+	entryRepo := s.entryRepo.WithTx(tx)
+
+	bID, err := batchRepo.Create(b)
 	if err != nil {
 		return 0, err
 	}
@@ -53,7 +57,7 @@ func (s *batchService) AddBatch(b *domain.ProductBatch, requestedBy int) (int, e
 		IsVerified:  b.IsVerified,
 		RequestedBy: requestedBy,
 	}
-	if err := s.entryRepo.Create(entry); err != nil {
+	if err := entryRepo.Create(entry); err != nil {
 		return 0, err
 	}
 
@@ -75,8 +79,12 @@ func (s *batchService) AdjustStock(batchID int, qtyToRemove int, unit string, it
 	}
 	defer tx.Rollback()
 
+	// Wrap repos
+	batchRepo := s.batchRepo.WithTx(tx)
+	logRepo := s.logRepo.WithTx(tx)
+
 	// 1. Get Batch Info
-	data, err := s.batchRepo.GetWithProduct(batchID)
+	data, err := batchRepo.GetWithProduct(batchID)
 	if err != nil {
 		return err
 	}
@@ -89,7 +97,7 @@ func (s *batchService) AdjustStock(batchID int, qtyToRemove int, unit string, it
 	}
 
 	// 2. Update Stock
-	if err := s.batchRepo.UpdateStock(batchID, -effectiveQty); err != nil {
+	if err := batchRepo.UpdateStock(batchID, -effectiveQty); err != nil {
 		return err
 	}
 
@@ -102,7 +110,7 @@ func (s *batchService) AdjustStock(batchID int, qtyToRemove int, unit string, it
 	if note != "" {
 		logMsg += " (Note: " + note + ")"
 	}
-	if err := s.logRepo.Log(userID, logMsg); err != nil {
+	if err := logRepo.Log(userID, logMsg); err != nil {
 		return err
 	}
 
@@ -116,8 +124,13 @@ func (s *batchService) PerformInventoryCheck(batchID int, actualStock int, unit 
 	}
 	defer tx.Rollback()
 
+	// Wrap repos
+	batchRepo := s.batchRepo.WithTx(tx)
+	entryRepo := s.entryRepo.WithTx(tx)
+	logRepo := s.logRepo.WithTx(tx)
+
 	// 1. Get Batch Info
-	data, err := s.batchRepo.GetWithProduct(batchID)
+	data, err := batchRepo.GetWithProduct(batchID)
 	if err != nil {
 		return err
 	}
@@ -131,7 +144,7 @@ func (s *batchService) PerformInventoryCheck(batchID int, actualStock int, unit 
 	}
 
 	// 2. Set Absolute Stock
-	if err := s.batchRepo.SetStock(batchID, actualStockPCS); err != nil {
+	if err := batchRepo.SetStock(batchID, actualStockPCS); err != nil {
 		return err
 	}
 
@@ -144,7 +157,7 @@ func (s *batchService) PerformInventoryCheck(batchID int, actualStock int, unit 
 		IsVerified:  true,
 		RequestedBy: userID,
 	}
-	if err := s.entryRepo.Create(entry); err != nil {
+	if err := entryRepo.Create(entry); err != nil {
 		return err
 	}
 
@@ -157,7 +170,7 @@ func (s *batchService) PerformInventoryCheck(batchID int, actualStock int, unit 
 	if notes != "" {
 		logMsg += " Notes: " + notes
 	}
-	if err := s.logRepo.Log(userID, logMsg); err != nil {
+	if err := logRepo.Log(userID, logMsg); err != nil {
 		return err
 	}
 

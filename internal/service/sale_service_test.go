@@ -177,3 +177,115 @@ func TestSaleService_ProcessAndVoid(t *testing.T) {
 		t.Errorf("Restoration failed: Expected both=10, Got B1=%d B2=%d", stock1, stock2)
 	}
 }
+
+func TestSaleService_DiscountValidation(t *testing.T) {
+	db, err := sql.Open("sqlite", "file::memory:?cache=shared")
+	if err != nil {
+		t.Fatalf("Failed to create in-memory DB: %v", err)
+	}
+	defer db.Close()
+
+	schema := `
+	CREATE TABLE products (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		name TEXT,
+		sku_code TEXT UNIQUE,
+		category TEXT,
+		unit TEXT,
+		items_per_unit INTEGER,
+		storage_location TEXT,
+		purchase_price REAL,
+		selling_price REAL,
+		min_stock INTEGER,
+		status TEXT,
+		legal_category TEXT,
+		therapeutic_class TEXT,
+		is_verified INTEGER,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
+	CREATE TABLE product_batches (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		product_id INTEGER,
+		batch_number TEXT,
+		expiry_date TEXT,
+		current_stock INTEGER,
+		purchase_price REAL,
+		selling_price REAL,
+		is_verified INTEGER,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
+	CREATE TABLE sales (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		user_id INTEGER,
+		total_amount REAL,
+		profit REAL,
+		discount REAL,
+		payment_method TEXT,
+		customer_name TEXT,
+		doctor_name TEXT,
+		prescription_number TEXT,
+		status TEXT,
+		void_reason TEXT,
+		void_requested_by INTEGER,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
+	CREATE TABLE sale_items (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		sale_id INTEGER,
+		product_id INTEGER,
+		batch_id INTEGER,
+		quantity INTEGER,
+		price REAL,
+		subtotal REAL,
+		sale_unit TEXT,
+		items_per_unit INTEGER
+	);
+	CREATE TABLE activity_logs (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		user_id INTEGER,
+		action TEXT,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
+	`
+	if _, err := db.Exec(schema); err != nil {
+		t.Fatalf("Failed to initialize schema: %v", err)
+	}
+
+	productRepo := repository.NewProductRepository(db)
+	batchRepo := repository.NewBatchRepository(db)
+	logRepo := repository.NewActivityLogRepository(db)
+	saleRepo := repository.NewSaleRepository(db)
+	s := NewSaleService(db, saleRepo, productRepo, batchRepo, logRepo)
+
+	// Setup 1 item: 1000 price, 10 stock
+	pID, err := productRepo.Create(&domain.Product{Name: "Test", Status: "active", SellingPrice: 1000, Unit: "Pcs", ItemsPerUnit: 1})
+	if err != nil {
+		t.Fatalf("Failed to create product: %v", err)
+	}
+	_, err = batchRepo.Create(&domain.ProductBatch{ProductID: pID, CurrentStock: 10, SellingPrice: 1000, IsVerified: true})
+	if err != nil {
+		t.Fatalf("Failed to create batch: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		discount float64
+		wantErr  bool
+	}{
+		{"Accept zero discount", 0, false},
+		{"Accept partial discount", 500, false},
+		{"Accept full discount", 1000, false},
+		{"Reject negative discount", -1, true},
+		{"Reject excessive discount", 1001, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			saleItems := []domain.SaleItem{{ProductID: pID, Quantity: 1}}
+			_, err := s.ProcessSale(1, saleItems, "Cash", "Test", "", "", tt.discount)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ProcessSale() for %s: error = %v, wantErr %v", tt.name, err, tt.wantErr)
+			}
+		})
+	}
+}

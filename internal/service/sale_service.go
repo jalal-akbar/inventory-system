@@ -34,11 +34,27 @@ func NewSaleService(db *sql.DB, sRepo repository.SaleRepository, pRepo repositor
 }
 
 func (s *saleService) ProcessSale(userID int, items []domain.SaleItem, paymentMethod, customerName, doctorName, prescriptionNumber string, discount float64) (int, error) {
+	// Normalize payment method
+	switch paymentMethod {
+	case "cash", "Cash":
+		paymentMethod = "Cash"
+	case "transfer", "Transfer":
+		paymentMethod = "Transfer"
+	default:
+		return 0, fmt.Errorf("invalid payment method: %s. Supported: Cash, Transfer", paymentMethod)
+	}
+
 	tx, err := s.db.Begin()
 	if err != nil {
 		return 0, err
 	}
 	defer tx.Rollback()
+
+	// Wrap repositories with transaction
+	productRepo := s.productRepo.WithTx(tx)
+	batchRepo := s.batchRepo.WithTx(tx)
+	saleRepo := s.saleRepo.WithTx(tx)
+	logRepo := s.logRepo.WithTx(tx)
 
 	var totalAmount float64
 	var totalProfit float64
@@ -49,7 +65,7 @@ func (s *saleService) ProcessSale(userID int, items []domain.SaleItem, paymentMe
 			continue
 		}
 
-		p, err := s.productRepo.FindByID(item.ProductID)
+		p, err := productRepo.FindByID(item.ProductID)
 		if err != nil || p == nil || p.Status != "active" {
 			return 0, fmt.Errorf("product ID %d not found or inactive", item.ProductID)
 		}
@@ -61,10 +77,10 @@ func (s *saleService) ProcessSale(userID int, items []domain.SaleItem, paymentMe
 			}
 		}
 
-		// Use items_per_unit to calculate effective PCS needed
-		effectiveQtyNeeded := item.Quantity * p.ItemsPerUnit
+		// Treat quantity as PCS directly (Opsi A)
+		effectiveQtyNeeded := item.Quantity
 
-		batches, err := s.batchRepo.GetAvailableForProduct(item.ProductID)
+		batches, err := batchRepo.GetAvailableForProduct(item.ProductID)
 		if err != nil {
 			return 0, err
 		}
@@ -80,7 +96,7 @@ func (s *saleService) ProcessSale(userID int, items []domain.SaleItem, paymentMe
 				qtyToTake = batch.CurrentStock
 			}
 
-			if err := s.batchRepo.UpdateStock(batch.ID, -qtyToTake); err != nil {
+			if err := batchRepo.UpdateStock(batch.ID, -qtyToTake); err != nil {
 				return 0, err
 			}
 
@@ -112,6 +128,14 @@ func (s *saleService) ProcessSale(userID int, items []domain.SaleItem, paymentMe
 		return 0, errors.New("cannot process empty sale")
 	}
 
+	if discount < 0 {
+		return 0, errors.New("discount cannot be negative")
+	}
+
+	if discount > totalAmount {
+		return 0, fmt.Errorf("discount (%.2f) cannot exceed total amount (%.2f)", discount, totalAmount)
+	}
+
 	finalTotal := totalAmount - discount
 	finalProfit := totalProfit - discount
 
@@ -134,19 +158,19 @@ func (s *saleService) ProcessSale(userID int, items []domain.SaleItem, paymentMe
 		sale.PrescriptionNumber = &prescriptionNumber
 	}
 
-	saleID, err := s.saleRepo.CreateSale(sale)
+	saleID, err := saleRepo.CreateSale(sale)
 	if err != nil {
 		return 0, err
 	}
 
 	for _, i := range itemsToInsert {
 		i.SaleID = saleID
-		if err := s.saleRepo.CreateSaleItem(&i); err != nil {
+		if err := saleRepo.CreateSaleItem(&i); err != nil {
 			return 0, err
 		}
 	}
 
-	if err := s.logRepo.Log(userID, fmt.Sprintf("Processed sale #%d - Total: Rp %.2f", saleID, finalTotal)); err != nil {
+	if err := logRepo.Log(userID, fmt.Sprintf("Processed sale #%d - Total: Rp %.2f", saleID, finalTotal)); err != nil {
 		return 0, err
 	}
 
@@ -164,7 +188,12 @@ func (s *saleService) VoidSale(saleID, adminUserID int) error {
 	}
 	defer tx.Rollback()
 
-	sale, err := s.saleRepo.FindByID(saleID)
+	// Wrap repositories
+	saleRepo := s.saleRepo.WithTx(tx)
+	batchRepo := s.batchRepo.WithTx(tx)
+	logRepo := s.logRepo.WithTx(tx)
+
+	sale, err := saleRepo.FindByID(saleID)
 	if err != nil {
 		return err
 	}
@@ -176,22 +205,22 @@ func (s *saleService) VoidSale(saleID, adminUserID int) error {
 		return fmt.Errorf("sale #%d is already voided", saleID)
 	}
 
-	if err := s.saleRepo.SetStatus(saleID, "void"); err != nil {
+	if err := saleRepo.SetStatus(saleID, "void"); err != nil {
 		return err
 	}
 
-	items, err := s.saleRepo.GetSaleItems(saleID)
+	items, err := saleRepo.GetSaleItems(saleID)
 	if err != nil {
 		return err
 	}
 
 	for _, item := range items {
-		if err := s.batchRepo.UpdateStock(item.BatchID, item.Quantity); err != nil {
+		if err := batchRepo.UpdateStock(item.BatchID, item.Quantity); err != nil {
 			return err
 		}
 	}
 
-	if err := s.logRepo.Log(adminUserID, fmt.Sprintf("Voided sale #%d - Amount: Rp %.2f", saleID, sale.TotalAmount)); err != nil {
+	if err := logRepo.Log(adminUserID, fmt.Sprintf("Voided sale #%d - Amount: Rp %.2f", saleID, sale.TotalAmount)); err != nil {
 		return err
 	}
 

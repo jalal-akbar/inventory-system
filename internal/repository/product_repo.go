@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	"inventory-system/internal/domain"
 )
 
@@ -22,20 +23,30 @@ type ProductRepository interface {
 	GetDetailsWithRelations(id int) (map[string]interface{}, error)
 	GetPendingGrouped() ([]map[string]interface{}, error)
 	GetRecent(limit int) ([]map[string]interface{}, error)
+	GetBestSellers(limit int) ([]map[string]interface{}, error)
 	SearchWithAllBatches(search, filter string) ([]map[string]interface{}, error)
+	WithTx(tx *sql.Tx) ProductRepository
 }
 
 type mysqlProductRepository struct {
-	db *sql.DB
+	db DBExecutor
 }
 
 func NewProductRepository(db *sql.DB) ProductRepository {
 	return &mysqlProductRepository{db: db}
 }
 
+func (r *mysqlProductRepository) getDB() DBExecutor {
+	return r.db
+}
+
+func (r *mysqlProductRepository) WithTx(tx *sql.Tx) ProductRepository {
+	return &mysqlProductRepository{db: tx}
+}
+
 func (r *mysqlProductRepository) FindByID(id int) (*domain.Product, error) {
 	p := &domain.Product{}
-	err := r.db.QueryRow("SELECT id, name, sku_code, category, legal_category, therapeutic_class, unit, items_per_unit, storage_location, purchase_price, selling_price, min_stock, status, is_verified, created_at FROM products WHERE id = ?", id).
+	err := r.getDB().QueryRow("SELECT id, name, sku_code, category, legal_category, therapeutic_class, unit, items_per_unit, storage_location, purchase_price, selling_price, min_stock, status, is_verified, created_at FROM products WHERE id = ?", id).
 		Scan(&p.ID, &p.Name, &p.SKUCode, &p.Category, &p.LegalCategory, &p.TherapeuticClass, &p.Unit, &p.ItemsPerUnit, &p.StorageLocation, &p.PurchasePrice, &p.SellingPrice, &p.MinStock, &p.Status, &p.IsVerified, &p.CreatedAt)
 	if err != nil {
 		return nil, err
@@ -392,6 +403,121 @@ func (r *mysqlProductRepository) GetRecent(limit int) ([]map[string]interface{},
 	}
 	return results, nil
 }
+
+func (r *mysqlProductRepository) GetBestSellers(limit int) ([]map[string]interface{}, error) {
+	// First, try to get products by sales quantity
+	query := `SELECT p.id, p.name, p.sku_code, p.category, p.legal_category, p.therapeutic_class, p.unit, p.items_per_unit, p.storage_location, 
+	                 p.purchase_price, p.selling_price, p.status, p.is_verified,
+	                 COALESCE(SUM(si.quantity), 0) as total_sold,
+	                 (SELECT COALESCE(SUM(current_stock), 0) FROM product_batches WHERE product_id = p.id AND is_verified = 1) as total_stock
+	          FROM products p
+	          JOIN sale_items si ON p.id = si.product_id
+	          JOIN sales s ON si.sale_id = s.id
+	          WHERE p.status = 'active' AND p.is_verified = 1 AND s.status = 'active'
+	          GROUP BY p.id
+	          ORDER BY total_sold DESC
+	          LIMIT ?`
+
+	rows, err := r.db.Query(query, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var products []map[string]interface{}
+	for rows.Next() {
+		var p domain.Product
+		var totalSold, totalStock int
+		if err := rows.Scan(&p.ID, &p.Name, &p.SKUCode, &p.Category, &p.LegalCategory, &p.TherapeuticClass, &p.Unit, &p.ItemsPerUnit, &p.StorageLocation, &p.PurchasePrice, &p.SellingPrice, &p.Status, &p.IsVerified, &totalSold, &totalStock); err != nil {
+			return nil, err
+		}
+		products = append(products, map[string]interface{}{
+			"id":                p.ID,
+			"name":              p.Name,
+			"sku_code":          p.SKUCode,
+			"category":          p.Category,
+			"legal_category":    p.LegalCategory,
+			"therapeutic_class": p.TherapeuticClass,
+			"unit":              p.Unit,
+			"items_per_unit":    p.ItemsPerUnit,
+			"storage_location":  p.StorageLocation,
+			"purchase_price":    p.PurchasePrice,
+			"selling_price":     p.SellingPrice,
+			"status":            p.Status,
+			"is_verified":       p.IsVerified,
+			"total_stock":       totalStock,
+			"total_sold":        totalSold,
+		})
+	}
+
+	// If we have enough best sellers, return them
+	if len(products) >= limit {
+		return products, nil
+	}
+
+	// Otherwise, pad with recently added products that are not yet in the best sellers list
+	alreadyIn := make(map[int]bool)
+	for _, p := range products {
+		alreadyIn[p["id"].(int)] = true
+	}
+
+	remainingLimit := limit - len(products)
+	recentQuery := `SELECT p.id, p.name, p.sku_code, p.category, p.legal_category, p.therapeutic_class, p.unit, p.items_per_unit, p.storage_location, 
+	                       p.purchase_price, p.selling_price, p.status, p.is_verified,
+	                       (SELECT COALESCE(SUM(current_stock), 0) FROM product_batches WHERE product_id = p.id AND is_verified = 1) as total_stock
+	                FROM products p
+	                WHERE p.status = 'active' AND p.is_verified = 1`
+
+	if len(alreadyIn) > 0 {
+		ids := ""
+		i := 0
+		for id := range alreadyIn {
+			if i > 0 {
+				ids += ","
+			}
+			ids += fmt.Sprintf("%d", id)
+			i++
+		}
+		recentQuery += fmt.Sprintf(" AND p.id NOT IN (%s)", ids)
+	}
+
+	recentQuery += " ORDER BY p.created_at DESC LIMIT ?"
+
+	recentRows, err := r.db.Query(recentQuery, remainingLimit)
+	if err != nil {
+		// If padding fails, just return what we have
+		return products, nil
+	}
+	defer recentRows.Close()
+
+	for recentRows.Next() {
+		var p domain.Product
+		var totalStock int
+		if err := recentRows.Scan(&p.ID, &p.Name, &p.SKUCode, &p.Category, &p.LegalCategory, &p.TherapeuticClass, &p.Unit, &p.ItemsPerUnit, &p.StorageLocation, &p.PurchasePrice, &p.SellingPrice, &p.Status, &p.IsVerified, &totalStock); err != nil {
+			return products, nil
+		}
+		products = append(products, map[string]interface{}{
+			"id":                p.ID,
+			"name":              p.Name,
+			"sku_code":          p.SKUCode,
+			"category":          p.Category,
+			"legal_category":    p.LegalCategory,
+			"therapeutic_class": p.TherapeuticClass,
+			"unit":              p.Unit,
+			"items_per_unit":    p.ItemsPerUnit,
+			"storage_location":  p.StorageLocation,
+			"purchase_price":    p.PurchasePrice,
+			"selling_price":     p.SellingPrice,
+			"status":            p.Status,
+			"is_verified":       p.IsVerified,
+			"total_stock":       totalStock,
+			"total_sold":        0,
+		})
+	}
+
+	return products, nil
+}
+
 func (r *mysqlProductRepository) SearchWithAllBatches(search, filter string) ([]map[string]interface{}, error) {
 	query := `SELECT p.id, p.name, p.sku_code, p.category, p.legal_category, p.therapeutic_class, p.unit, p.items_per_unit,
 	                 b.id as batch_id, b.batch_number, b.expiry_date, b.current_stock

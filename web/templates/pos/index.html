@@ -40,6 +40,28 @@
         }
         return originalFetch(url, options);
       };
+
+      // i18n for POS JS
+      window.posI18n = {
+          outOfStock: "{{ t `js_out_of_stock` .Lang }}",
+          outOfStockDesc: "{{ t `js_out_of_stock_desc` .Lang }}",
+          stockLimit: "{{ t `js_stock_limit` .Lang }}",
+          stockLimitExceed: "{{ t `js_stock_limit_exceed` .Lang }}",
+          stockLimitDesc: "{{ t `pos_stock_limit_desc` .Lang }}",
+          clearCartTitle: "{{ t `pos_clear_cart_title` .Lang }}",
+          clearCartText: "{{ t `pos_clear_cart_text` .Lang }}",
+          clearCartConfirm: "{{ t `pos_clear_cart_confirm` .Lang }}",
+          cancel: "{{ t `cancel` .Lang }}",
+          emptyCartTitle: "{{ t `pos_cart_empty` .Lang }}",
+          emptyCartDesc: "{{ t `pos_empty_cart_desc` .Lang }}",
+          remove: "{{ t `pos_remove_item` .Lang }}",
+          processing: "{{ t `pos_processing` .Lang }}",
+          successTitle: "{{ t `pos_success_title` .Lang }}",
+          errorTitle: "{{ t `pos_error_title` .Lang }}",
+          transactionCompleted: "{{ t `pos_transaction_completed` .Lang }}",
+          outOfStockLabel: "{{ t `pos_out_of_stock` .Lang }}",
+          available: "{{ t `pos_stock_limit_avail` .Lang }}"
+      };
     </script>
   </head>
   <body class="pos-body">
@@ -77,8 +99,10 @@
           hx-trigger="keyup changed delay:300ms, search"
           hx-target="#products-display"
           name="q"
+          hx-include="#active-category"
         />
-        <span class="kbd-hint d-none d-md-inline">/</span>
+        <input type="hidden" id="active-category" name="category" value="" />
+        <span class="kbd-hint">/</span>
       </div>
 
       <div class="d-flex align-items-center gap-3">
@@ -102,30 +126,30 @@
         </button>
 
         <div class="user-profile" id="userProfileDropdown">
-          <div class="user-avatar" style="width: 36px; height: 36px; background: var(--primary-color); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;">
+          <div class="user-avatar">
             {{ firstChar .CurrentUser.Username }}
           </div>
           <div class="user-info d-none d-md-block text-end">
-            <span class="user-name fw-bold small" style="display: block; line-height: 1;">{{ .CurrentUser.Username }}</span>
-            <span class="user-role text-muted smaller" style="text-transform: capitalize;">{{ .CurrentUser.Role }}</span>
+            <span class="user-name fw-bold small">{{ .CurrentUser.Username }}</span>
+            <span class="user-role text-muted smaller">{{ .CurrentUser.Role }}</span>
           </div>
           <i data-lucide="chevron-down" class="dropdown-icon" style="width: 16px; height: 16px; margin-left: 2px; color: var(--text-muted);"></i>
           
-          <div class="user-dropdown" id="userDropdownContent" style="position: absolute; top: calc(100% + 8px); right: 0; width: 240px; background: white; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; padding: 0.5rem; opacity: 0; visibility: hidden; transform: translateY(10px); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000;">
-              <a href="/account-settings" class="dropdown-item d-flex align-items-center gap-2 p-2 text-decoration-none text-dark" style="font-size: 0.9rem;">
+          <div class="user-dropdown" id="userDropdownContent">
+              <a href="/account-settings" class="dropdown-item d-flex align-items-center gap-2 p-2 text-decoration-none text-dark">
                   <i data-lucide="user" style="width: 18px; height: 18px;"></i>
                   <span>{{ t "my_account" .Lang }}</span>
               </a>
               
               {{ if eq .CurrentUser.Role "admin" }}
-              <a href="/settings" class="dropdown-item d-flex align-items-center gap-2 p-2 text-decoration-none text-dark" style="font-size: 0.9rem;">
+              <a href="/settings" class="dropdown-item d-flex align-items-center gap-2 p-2 text-decoration-none text-dark">
                   <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
                   <span>{{ t "settings" .Lang }}</span>
               </a>
               {{ end }}
               
               <hr class="my-1 border-light">
-              <a href="/logout" class="dropdown-item d-flex align-items-center gap-2 p-2 text-decoration-none text-danger" style="font-size: 0.9rem;">
+              <a href="/logout" class="dropdown-item d-flex align-items-center gap-2 p-2 text-decoration-none text-danger">
                   <i data-lucide="log-out" style="width: 18px; height: 18px;"></i>
                   <span>{{ t "logout" .Lang }}</span>
               </a>
@@ -136,12 +160,14 @@
 
     <div class="pos-container">
       <div class="products-panel">
-        <div class="categories-header mb-4 overflow-auto d-flex gap-2 pb-2">
+        <div class="categories-header">
           <div class="category-pill active" onclick="filterCategory(this, '')">
+            <i data-lucide="layers"></i>
             {{ t "all_categories" .Lang }}
           </div>
           {{ range .Categories }}
           <div class="category-pill" onclick="filterCategory(this, '{{ . }}')">
+            <i data-lucide="tag"></i>
             {{ . }}
           </div>
           {{ end }}
@@ -153,15 +179,17 @@
       </div>
 
       <div class="cart-panel">
-        <div
-          class="p-3 border-bottom d-flex justify-content-between align-items-center"
-        >
-          <h5 class="mb-0 fw-bold">{{ t "current_order" .Lang }}</h5>
+        <div class="cart-header">
+          <div class="d-flex align-items-center gap-3">
+            <h5 class="mb-0 text-dark">{{ t "current_order" .Lang }}</h5>
+            <span id="cart-count-badge" class="badge bg-primary rounded-pill smaller d-none">0</span>
+          </div>
           <button
-            class="btn btn-sm btn-light text-danger border-0"
+            class="header-btn border-0 text-danger bg-danger bg-opacity-10"
             onclick="clearCart()"
+            title="{{ t `clear_cart` .Lang }}"
           >
-            <i data-lucide="trash-2" style="width: 16px"></i>
+            <i data-lucide="trash-2" style="width: 18px"></i>
           </button>
         </div>
 
@@ -171,82 +199,67 @@
 
         <div class="cart-footer">
           <!-- Customer info -->
-          <div class="mb-3">
-            <input
-              type="text"
-              id="customer_name"
-              class="form-control form-control-sm rounded-2 border-light-subtle shadow-none"
-              placeholder="{{ t `pos_customer_name_optional` .Lang }}"
-            />
+          <div class="mb-2">
+            <button class="btn btn-sm btn-link text-decoration-none text-muted p-0 d-flex align-items-center gap-1" type="button" data-bs-toggle="collapse" data-bs-target="#customerNameCollapse" aria-expanded="false" aria-controls="customerNameCollapse">
+              <i data-lucide="user-plus" style="width: 14px; height: 14px;"></i>
+              <span style="font-size: 0.75rem;">{{ t "pos_customer_name_optional" .Lang }}</span>
+            </button>
+            <div class="collapse mt-1" id="customerNameCollapse">
+              <input
+                type="text"
+                id="customer_name"
+                class="form-control form-control-sm border-0 border-bottom bg-transparent rounded-0 shadow-none px-1"
+                placeholder="{{ t `pos_customer_name_optional` .Lang }}"
+                style="font-size: 0.8rem;"
+              />
+            </div>
           </div>
 
-          <div class="d-flex flex-column gap-2 mb-4">
-            <div class="d-flex justify-content-between text-muted small">
-              <span>{{ t "pos_subtotal" .Lang }}</span>
-              <span id="subtotal-display">Rp 0</span>
-            </div>
-            <div class="d-flex justify-content-between text-muted small">
-              <span>{{ t "pos_discount" .Lang }}</span>
-              <div class="input-group input-group-sm" style="width: 120px">
-                <span class="input-group-text border-0 bg-transparent ps-0"
-                  >Rp</span
-                >
-                <input
-                  type="number"
-                  id="discount-input"
-                  class="form-control border-0 bg-transparent text-end p-0 shadow-none fw-bold"
-                  value="0"
-                  onchange="calculateTotal()"
-                />
+          <div class="summary-area mb-2">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <div class="d-flex align-items-center gap-2">
+                <span class="summary-label mb-0">{{ t "pos_subtotal" .Lang }}:</span>
+                <span id="subtotal-display" class="summary-value">Rp 0</span>
+              </div>
+              
+              <div class="d-flex align-items-center gap-2">
+                <span class="summary-label mb-0">{{ t "pos_discount" .Lang }}:</span>
+                <div class="discount-group">
+                  <span class="smaller fw-bold text-muted">Rp</span>
+                  <input
+                    type="number"
+                    id="discount-input"
+                    class="discount-input"
+                    value="0"
+                    onchange="calculateTotal()"
+                  />
+                </div>
               </div>
             </div>
-            <hr class="my-1" />
-            <div class="d-flex justify-content-between align-items-center">
-              <span class="fw-bold">{{ t "pos_total" .Lang }}</span>
-              <span id="total-display" class="FS-4 fw-800 text-primary"
-                >Rp 0</span
-              >
+
+            <div class="total-row">
+              <span class="total-label">{{ t "pos_total" .Lang }}</span>
+              <span id="total-display" class="total-value">Rp 0</span>
             </div>
           </div>
 
-          <div class="mb-3">
-            <label class="small fw-bold text-muted mb-2 d-block"
-              >{{ t "pos_payment_method" .Lang }}</label
-            >
-            <div class="d-flex gap-2">
-              <input
-                type="radio"
-                class="btn-check"
-                name="payment_method"
-                id="pay_cash"
-                value="cash"
-                checked
-              />
-              <label
-                class="btn btn-outline-light text-dark border flex-grow-1 py-2 rounded-3 small fw-bold"
-                for="pay_cash"
-              >
-                <i data-lucide="banknote" class="me-1" style="width: 14px"></i>
-                {{ t "pos_cash" .Lang }}
+          <div class="mb-2">
+            <label class="small fw-800 text-muted mb-1 d-block text-uppercase letter-spacing-1" style="font-size: 0.65rem;">
+              {{ t "pos_payment_method" .Lang }}
+            </label>
+            <div class="payment-selector">
+              <label class="pay-method">
+                <input type="radio" name="payment_method" id="pay_cash" value="cash" checked />
+                <div class="pay-card">
+                  <span>{{ t "pos_cash" .Lang }}</span>
+                </div>
               </label>
 
-              <input
-                type="radio"
-                class="btn-check"
-                name="payment_method"
-                id="pay_transfer"
-                value="transfer"
-              />
-              <label
-                class="btn btn-outline-light text-dark border flex-grow-1 py-2 rounded-3 small fw-bold"
-                for="pay_transfer"
-              >
-                <i
-                  data-lucide="credit-card"
-                  class="me-1"
-                  style="width: 14px"
-                ></i>
-                {{ t "pos_transfer" .Lang }}
+              <label class="pay-method">
+                <input type="radio" name="payment_method" id="pay_transfer" value="transfer" />
+                <div class="pay-card">
+                  <span>{{ t "pos_transfer" .Lang }}</span>
+                </div>
               </label>
             </div>
           </div>
@@ -257,7 +270,8 @@
             onclick="processCheckout()"
             disabled
           >
-            {{ t "pos_complete_transaction" .Lang }}
+            <span>{{ t "pos_complete_transaction" .Lang }}</span>
+            <span class="kbd-hint-btn">F8</span>
           </button>
         </div>
       </div>

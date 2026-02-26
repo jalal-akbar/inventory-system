@@ -16,6 +16,7 @@ type ProductService interface {
 	GetDetails(id int) (map[string]interface{}, error)
 	GetPendingCount() (int, error)
 	GetRecentProducts(limit int) ([]map[string]interface{}, error)
+	GetBestSellingProducts(limit int) ([]map[string]interface{}, error)
 	SearchWithAllBatches(search, filter string) ([]map[string]interface{}, error)
 }
 
@@ -44,8 +45,14 @@ func (s *productService) CreateProduct(p *domain.Product, batchNum, expiry strin
 	}
 	defer tx.Rollback()
 
+	// Wrap repos with transaction
+	productRepo := s.productRepo.WithTx(tx)
+	batchRepo := s.batchRepo.WithTx(tx)
+	entryRepo := s.entryRepo.WithTx(tx)
+	logRepo := s.logRepo.WithTx(tx)
+
 	// 1. Create Product
-	pID, err := s.productRepo.Create(p)
+	pID, err := productRepo.Create(p)
 	if err != nil {
 		return 0, err
 	}
@@ -60,7 +67,7 @@ func (s *productService) CreateProduct(p *domain.Product, batchNum, expiry strin
 		SellingPrice:  p.SellingPrice,
 		IsVerified:    p.IsVerified,
 	}
-	bID, err := s.batchRepo.Create(batch)
+	bID, err := batchRepo.Create(batch)
 	if err != nil {
 		return 0, err
 	}
@@ -74,12 +81,12 @@ func (s *productService) CreateProduct(p *domain.Product, batchNum, expiry strin
 		IsVerified:  p.IsVerified,
 		RequestedBy: requestedBy,
 	}
-	if err := s.entryRepo.Create(entry); err != nil {
+	if err := entryRepo.Create(entry); err != nil {
 		return 0, err
 	}
 
 	// 4. Activity Log
-	if err := s.logRepo.Log(requestedBy, "Created product: "+p.Name); err != nil {
+	if err := logRepo.Log(requestedBy, "Created product: "+p.Name); err != nil {
 		return 0, err
 	}
 
@@ -106,13 +113,18 @@ func (s *productService) VerifyProduct(id int) error {
 	}
 	defer tx.Rollback()
 
-	if err := s.productRepo.Verify(id); err != nil {
+	// Wrap repos
+	productRepo := s.productRepo.WithTx(tx)
+	batchRepo := s.batchRepo.WithTx(tx)
+	entryRepo := s.entryRepo.WithTx(tx)
+
+	if err := productRepo.Verify(id); err != nil {
 		return err
 	}
-	if err := s.batchRepo.VerifyByProduct(id); err != nil {
+	if err := batchRepo.VerifyByProduct(id); err != nil {
 		return err
 	}
-	if err := s.entryRepo.VerifyByProduct(id); err != nil {
+	if err := entryRepo.VerifyByProduct(id); err != nil {
 		return err
 	}
 
@@ -137,6 +149,10 @@ func (s *productService) GetPendingCount() (int, error) {
 
 func (s *productService) GetRecentProducts(limit int) ([]map[string]interface{}, error) {
 	return s.productRepo.GetRecent(limit)
+}
+
+func (s *productService) GetBestSellingProducts(limit int) ([]map[string]interface{}, error) {
+	return s.productRepo.GetBestSellers(limit)
 }
 
 func (s *productService) SearchWithAllBatches(search, filter string) ([]map[string]interface{}, error) {

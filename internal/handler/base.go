@@ -50,6 +50,17 @@ func (h *BaseHandler) getFuncMap(tz string) template.FuncMap {
 			}
 			return fmt.Sprintf("Rp %s", formatNumber(f))
 		},
+		"formatNumber": func(amount interface{}) string {
+			f, ok := amount.(float64)
+			if !ok {
+				if i, ok := amount.(int); ok {
+					f = float64(i)
+				} else if i64, ok := amount.(int64); ok {
+					f = float64(i64)
+				}
+			}
+			return formatNumber(f)
+		},
 		"formatDateTime": func(t interface{}) string {
 			var tm time.Time
 			switch v := t.(type) {
@@ -141,11 +152,20 @@ func (h *BaseHandler) getFuncMap(tz string) template.FuncMap {
 			}
 			return fa / fb
 		},
-		"abs": func(a int) int {
-			if a < 0 {
-				return -a
+		"abs": func(a interface{}) float64 {
+			var f float64
+			switch v := a.(type) {
+			case int:
+				f = float64(v)
+			case int64:
+				f = float64(v)
+			case float64:
+				f = v
 			}
-			return a
+			if f < 0 {
+				return -f
+			}
+			return f
 		},
 		"json": func(v interface{}) template.JS {
 			b, err := json.Marshal(v)
@@ -156,6 +176,25 @@ func (h *BaseHandler) getFuncMap(tz string) template.FuncMap {
 		},
 		"formatPercentage": func(v float64) string {
 			return fmt.Sprintf("%.1f%%", v)
+		},
+		"formatPcsToUnit": func(totalPcs int, unitName string, itemsPerUnit int) string {
+			if totalPcs <= 0 {
+				return fmt.Sprintf("0 %s", unitName)
+			}
+			if itemsPerUnit <= 1 {
+				// No conversion needed
+				return fmt.Sprintf("%d %s", totalPcs, unitName)
+			}
+
+			units := totalPcs / itemsPerUnit
+			remainingPcs := totalPcs % itemsPerUnit
+
+			if units > 0 && remainingPcs > 0 {
+				return fmt.Sprintf("%d %s %d PCS", units, unitName, remainingPcs)
+			} else if units > 0 {
+				return fmt.Sprintf("%d %s", units, unitName)
+			}
+			return fmt.Sprintf("%d PCS", remainingPcs)
 		},
 	}
 }
