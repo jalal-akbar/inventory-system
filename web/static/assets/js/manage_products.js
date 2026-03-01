@@ -65,7 +65,7 @@ function fetchProducts() {
     const urlParams = new URLSearchParams(window.location.search);
     const filter = urlParams.get('filter') || '';
 
-    fetch(`api/products?search=${encodeURIComponent(search)}&filter=${filter}`)
+    fetch(`/api/products?search=${encodeURIComponent(search)}&filter=${filter}`)
         .then(res => res.json())
         .then(data => {
             const tbody = document.getElementById('productTableBody');
@@ -308,7 +308,7 @@ function saveProduct(e) {
     e.preventDefault();
     setModalLoading('productModalLoading', 'productSubmitBtn', true);
     const id = document.getElementById('productId').value;
-    const url = id ? 'api/products/update' : 'api/products/create';
+    const url = id ? '/api/products/update' : '/api/products/create';
 
     const data = {
         id: id,
@@ -335,7 +335,7 @@ function saveProduct(e) {
     let finalData = data;
 
     if (!id && selectedProductId) {
-        finalUrl = 'api/batches/create';
+        finalUrl = '/api/batches/create';
         finalData = {
             product_id: selectedProductId,
             batch_number: data.batch_number,
@@ -390,7 +390,7 @@ function setModalLoading(overlayId, btnId, isLoading, originalText) {
 function verifyProduct(id) {
     if (!confirm(t('verify_confirm'))) return;
 
-    fetch('api/products/verify', {
+    fetch('/api/products/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: id })
@@ -417,7 +417,7 @@ function deleteProduct(id, name) {
         confirmButtonText: t('yes_inactivate')
     }).then((result) => {
         if (result.isConfirmed) {
-            fetch('api/products/delete', {
+            fetch('/api/products/delete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: id })
@@ -541,7 +541,7 @@ function searchProducts(query) {
 
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
-        fetch(`api/products/search?q=${encodeURIComponent(query)}`)
+        fetch(`/api/products/search?q=${encodeURIComponent(query)}`)
             .then(res => res.json())
             .then(data => {
                 if (isRapid && data.length === 1 && (data[0].sku_code === query || data[0].name === query)) {
@@ -635,7 +635,7 @@ function saveBatch(e) {
     };
 
     setModalLoading('batchModalLoading', 'batchSubmitBtn', true);
-    fetch('api/batches/create', {
+    fetch('/api/batches/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -661,7 +661,7 @@ function openViewBatchesModal(product) {
 }
 
 function fetchBatches(productId) {
-    fetch(`api/batches?product_id=${productId}`)
+    fetch(`/api/batches?product_id=${productId}`)
         .then(res => res.json())
         .then(result => {
             const tbody = document.getElementById('batchTableBody');
@@ -685,11 +685,11 @@ function fetchBatches(productId) {
                         </span>
                     </td>
                     <td style="text-align: right;">
-                        <?php if ($_SESSION['role'] === 'admin'): ?>
+                        ${USER_ROLE === 'admin' ? `
                         <button class="btn btn-sm btn-outline-danger" onclick='openAdjustmentModal(${JSON.stringify(batch).replace(/'/g, "&#39;")})' title="Adjust/Return">
                             <i data-lucide="minus-circle" style="width: 16px; height: 16px;"></i>
                         </button>
-                        <?php endif; ?>
+                        ` : ''}
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -729,7 +729,7 @@ function saveAdjustment(e) {
         return;
     }
 
-    fetch('api/inventory/adjust', {
+    fetch('/api/inventory/adjust', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)

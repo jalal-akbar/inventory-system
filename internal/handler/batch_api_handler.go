@@ -65,6 +65,7 @@ func (h *BatchApiHandler) Store(w http.ResponseWriter, r *http.Request) {
 		ProductID:     data.ProductID,
 		BatchNumber:   data.BatchNumber,
 		ExpiryDate:    data.ExpiryDate,
+		InitialQty:    int(data.PackageCount),
 		CurrentStock:  int(data.PackageCount) * data.ItemsPerUnit,
 		PurchasePrice: data.PurchasePrice,
 		SellingPrice:  data.SellingPrice,

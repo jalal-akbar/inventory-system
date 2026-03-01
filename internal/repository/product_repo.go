@@ -46,8 +46,8 @@ func (r *mysqlProductRepository) WithTx(tx *sql.Tx) ProductRepository {
 
 func (r *mysqlProductRepository) FindByID(id int) (*domain.Product, error) {
 	p := &domain.Product{}
-	err := r.getDB().QueryRow("SELECT id, name, sku_code, category, legal_category, therapeutic_class, unit, items_per_unit, storage_location, purchase_price, selling_price, min_stock, status, is_verified, created_at FROM products WHERE id = ?", id).
-		Scan(&p.ID, &p.Name, &p.SKUCode, &p.Category, &p.LegalCategory, &p.TherapeuticClass, &p.Unit, &p.ItemsPerUnit, &p.StorageLocation, &p.PurchasePrice, &p.SellingPrice, &p.MinStock, &p.Status, &p.IsVerified, &p.CreatedAt)
+	err := r.getDB().QueryRow("SELECT id, name, COALESCE(sku_code, ''), category, therapeutic_class, unit, sub_unit, items_per_unit, storage_location, purchase_price, selling_price, min_stock, status, is_verified, created_at FROM products WHERE id = ?", id).
+		Scan(&p.ID, &p.Name, &p.SKUCode, &p.Category, &p.TherapeuticClass, &p.Unit, &p.SubUnit, &p.ItemsPerUnit, &p.StorageLocation, &p.PurchasePrice, &p.SellingPrice, &p.MinStock, &p.Status, &p.IsVerified, &p.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (r *mysqlProductRepository) FindByID(id int) (*domain.Product, error) {
 }
 
 func (r *mysqlProductRepository) SearchWithStock(search, filter string) ([]map[string]interface{}, error) {
-	query := `SELECT p.id, p.name, p.sku_code, p.category, p.legal_category, p.therapeutic_class, p.unit, p.items_per_unit, p.storage_location, 
+	query := `SELECT p.id, p.name, COALESCE(p.sku_code, ''), p.category, p.therapeutic_class, p.unit, p.sub_unit, p.items_per_unit, p.storage_location, 
 	                 p.purchase_price, p.selling_price, p.status, p.is_verified,
 	                 COALESCE(SUM(b.current_stock), 0) as total_stock 
 	          FROM products p 
@@ -64,14 +64,14 @@ func (r *mysqlProductRepository) SearchWithStock(search, filter string) ([]map[s
 
 	var params []interface{}
 	if filter != "" && filter != "low_stock" && filter != "expiring" && filter != "expired" && filter != "pending" {
-		query += " AND (p.category = ? OR p.therapeutic_class = ? OR p.legal_category = ?)"
-		params = append(params, filter, filter, filter)
+		query += " AND (p.category = ? OR p.therapeutic_class = ?)"
+		params = append(params, filter, filter)
 	}
 
 	if search != "" {
-		query += " AND (p.name LIKE ? OR p.sku_code = ? OR p.category LIKE ? OR p.legal_category LIKE ? OR p.therapeutic_class LIKE ? OR p.storage_location LIKE ?)"
+		query += " AND (p.name LIKE ? OR p.sku_code = ? OR p.category LIKE ? OR p.therapeutic_class LIKE ? OR p.storage_location LIKE ?)"
 		s := "%" + search + "%"
-		params = append(params, s, search, s, s, s, s)
+		params = append(params, s, search, s, s, s)
 	}
 
 	switch filter {
@@ -101,7 +101,7 @@ func (r *mysqlProductRepository) SearchWithStock(search, filter string) ([]map[s
 	for rows.Next() {
 		var p domain.Product
 		var totalStock int
-		if err := rows.Scan(&p.ID, &p.Name, &p.SKUCode, &p.Category, &p.LegalCategory, &p.TherapeuticClass, &p.Unit, &p.ItemsPerUnit, &p.StorageLocation, &p.PurchasePrice, &p.SellingPrice, &p.Status, &p.IsVerified, &totalStock); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.SKUCode, &p.Category, &p.TherapeuticClass, &p.Unit, &p.SubUnit, &p.ItemsPerUnit, &p.StorageLocation, &p.PurchasePrice, &p.SellingPrice, &p.Status, &p.IsVerified, &totalStock); err != nil {
 			return nil, err
 		}
 		products = append(products, map[string]interface{}{
@@ -109,9 +109,9 @@ func (r *mysqlProductRepository) SearchWithStock(search, filter string) ([]map[s
 			"name":              p.Name,
 			"sku_code":          p.SKUCode,
 			"category":          p.Category,
-			"legal_category":    p.LegalCategory,
 			"therapeutic_class": p.TherapeuticClass,
 			"unit":              p.Unit,
+			"sub_unit":          p.SubUnit,
 			"items_per_unit":    p.ItemsPerUnit,
 			"storage_location":  p.StorageLocation,
 			"purchase_price":    p.PurchasePrice,
@@ -126,7 +126,7 @@ func (r *mysqlProductRepository) SearchWithStock(search, filter string) ([]map[s
 
 func (r *mysqlProductRepository) QuickSearch(q string) ([]map[string]interface{}, error) {
 	query := `
-		SELECT p.id, p.name, p.sku_code, p.category, p.legal_category, p.therapeutic_class, p.unit, p.items_per_unit, p.selling_price,
+		SELECT p.id, p.name, COALESCE(p.sku_code, ''), p.category, p.therapeutic_class, p.unit, p.sub_unit, p.items_per_unit, p.selling_price,
 		       COALESCE(SUM(b.current_stock), 0) as total_stock,
 		       MIN(CASE WHEN b.current_stock > 0 THEN b.expiry_date ELSE NULL END) as nearest_expiry
 		FROM products p
@@ -144,10 +144,10 @@ func (r *mysqlProductRepository) QuickSearch(q string) ([]map[string]interface{}
 	var results []map[string]interface{}
 	for rows.Next() {
 		var id, itemsPerUnit, totalStock int
-		var name, sku, category, legalCategory, therapeuticClass, unit string
+		var name, sku, category, therapeuticClass, unit, subUnit string
 		var sellingPrice float64
 		var nearestExpiry sql.NullString
-		if err := rows.Scan(&id, &name, &sku, &category, &legalCategory, &therapeuticClass, &unit, &itemsPerUnit, &sellingPrice, &totalStock, &nearestExpiry); err != nil {
+		if err := rows.Scan(&id, &name, &sku, &category, &therapeuticClass, &unit, &subUnit, &itemsPerUnit, &sellingPrice, &totalStock, &nearestExpiry); err != nil {
 			return nil, err
 		}
 		results = append(results, map[string]interface{}{
@@ -155,9 +155,9 @@ func (r *mysqlProductRepository) QuickSearch(q string) ([]map[string]interface{}
 			"name":              name,
 			"sku_code":          sku,
 			"category":          category,
-			"legal_category":    legalCategory,
 			"therapeutic_class": therapeuticClass,
 			"unit":              unit,
+			"sub_unit":          subUnit,
 			"items_per_unit":    itemsPerUnit,
 			"selling_price":     sellingPrice,
 			"total_stock":       totalStock,
@@ -168,8 +168,9 @@ func (r *mysqlProductRepository) QuickSearch(q string) ([]map[string]interface{}
 }
 
 func (r *mysqlProductRepository) Create(p *domain.Product) (int, error) {
-	res, err := r.db.Exec("INSERT INTO products (name, sku_code, category, legal_category, therapeutic_class, unit, items_per_unit, storage_location, purchase_price, selling_price, min_stock, status, is_verified, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
-		p.Name, p.SKUCode, p.Category, p.LegalCategory, p.TherapeuticClass, p.Unit, p.ItemsPerUnit, p.StorageLocation, p.PurchasePrice, p.SellingPrice, p.MinStock, p.Status, p.IsVerified)
+	sku := sql.NullString{String: p.SKUCode, Valid: p.SKUCode != ""}
+	res, err := r.db.Exec("INSERT INTO products (name, sku_code, category, therapeutic_class, unit, sub_unit, items_per_unit, storage_location, purchase_price, selling_price, min_stock, status, is_verified, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+		p.Name, sku, p.Category, p.TherapeuticClass, p.Unit, p.SubUnit, p.ItemsPerUnit, p.StorageLocation, p.PurchasePrice, p.SellingPrice, p.MinStock, p.Status, p.IsVerified)
 	if err != nil {
 		return 0, err
 	}
@@ -178,8 +179,9 @@ func (r *mysqlProductRepository) Create(p *domain.Product) (int, error) {
 }
 
 func (r *mysqlProductRepository) UpdateFull(id int, p *domain.Product, isAdmin bool) error {
-	query := "UPDATE products SET name = ?, sku_code = ?, category = ?, legal_category = ?, therapeutic_class = ?, unit = ?, items_per_unit = ?, storage_location = ?, min_stock = ?, is_verified = ?"
-	params := []interface{}{p.Name, p.SKUCode, p.Category, p.LegalCategory, p.TherapeuticClass, p.Unit, p.ItemsPerUnit, p.StorageLocation, p.MinStock}
+	query := "UPDATE products SET name = ?, sku_code = ?, category = ?, therapeutic_class = ?, unit = ?, sub_unit = ?, items_per_unit = ?, storage_location = ?, min_stock = ?, is_verified = ?"
+	sku := sql.NullString{String: p.SKUCode, Valid: p.SKUCode != ""}
+	params := []interface{}{p.Name, sku, p.Category, p.TherapeuticClass, p.Unit, p.SubUnit, p.ItemsPerUnit, p.StorageLocation, p.MinStock}
 
 	isVerified := 0
 	if isAdmin {
@@ -241,7 +243,7 @@ func (r *mysqlProductRepository) GetPendingPricesCount() (int, error) {
 }
 
 func (r *mysqlProductRepository) GetActiveProducts() ([]domain.Product, error) {
-	rows, err := r.db.Query("SELECT id, name, sku_code, category, legal_category, therapeutic_class, unit, items_per_unit, storage_location, purchase_price, selling_price, min_stock, status, is_verified FROM products WHERE status = 'active' ORDER BY name ASC")
+	rows, err := r.db.Query("SELECT id, name, COALESCE(sku_code, ''), category, therapeutic_class, unit, sub_unit, items_per_unit, storage_location, purchase_price, selling_price, min_stock, status, is_verified FROM products WHERE status = 'active' ORDER BY name ASC")
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +252,7 @@ func (r *mysqlProductRepository) GetActiveProducts() ([]domain.Product, error) {
 	var products []domain.Product
 	for rows.Next() {
 		var p domain.Product
-		if err := rows.Scan(&p.ID, &p.Name, &p.SKUCode, &p.Category, &p.LegalCategory, &p.TherapeuticClass, &p.Unit, &p.ItemsPerUnit, &p.StorageLocation, &p.PurchasePrice, &p.SellingPrice, &p.MinStock, &p.Status, &p.IsVerified); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.SKUCode, &p.Category, &p.TherapeuticClass, &p.Unit, &p.SubUnit, &p.ItemsPerUnit, &p.StorageLocation, &p.PurchasePrice, &p.SellingPrice, &p.MinStock, &p.Status, &p.IsVerified); err != nil {
 			return nil, err
 		}
 		products = append(products, p)
@@ -259,7 +261,7 @@ func (r *mysqlProductRepository) GetActiveProducts() ([]domain.Product, error) {
 }
 
 func (r *mysqlProductRepository) FindWithDetails(id int) (map[string]interface{}, error) {
-	row := r.db.QueryRow("SELECT id, name, sku_code, storage_location, selling_price FROM products WHERE id = ?", id)
+	row := r.db.QueryRow("SELECT id, name, COALESCE(sku_code, ''), storage_location, selling_price FROM products WHERE id = ?", id)
 	var pID int
 	var name, sku, location string
 	var price float64
@@ -277,7 +279,7 @@ func (r *mysqlProductRepository) FindWithDetails(id int) (map[string]interface{}
 
 func (r *mysqlProductRepository) GetDetailsWithRelations(id int) (map[string]interface{}, error) {
 	query := `
-		SELECT p.id, p.name, p.sku_code, p.category, p.legal_category, p.therapeutic_class, p.unit, p.items_per_unit, p.storage_location,
+		SELECT p.id, p.name, COALESCE(p.sku_code, ''), p.category, p.therapeutic_class, p.unit, p.sub_unit, p.items_per_unit, p.storage_location,
 		       p.purchase_price, p.selling_price, p.min_stock, p.is_verified,
 		       b.batch_number, b.expiry_date, b.current_stock as initial_stock_pcs,
 		       u.username as staff_name,
@@ -295,7 +297,7 @@ func (r *mysqlProductRepository) GetDetailsWithRelations(id int) (map[string]int
 	var initialStock int
 	var requestDate sql.NullTime
 
-	err := row.Scan(&p.ID, &p.Name, &p.SKUCode, &p.Category, &p.LegalCategory, &p.TherapeuticClass, &p.Unit, &p.ItemsPerUnit, &p.StorageLocation,
+	err := row.Scan(&p.ID, &p.Name, &p.SKUCode, &p.Category, &p.TherapeuticClass, &p.Unit, &p.SubUnit, &p.ItemsPerUnit, &p.StorageLocation,
 		&p.PurchasePrice, &p.SellingPrice, &p.MinStock, &p.IsVerified,
 		&batchNumber, &expiryDate, &initialStock, &staffName, &requestDate)
 	if err != nil {
@@ -315,7 +317,7 @@ func (r *mysqlProductRepository) GetPendingGrouped() ([]map[string]interface{}, 
 	// Reconstructing the logic: UNION between products/batches/stock and void requests
 	query := `
 		(SELECT 
-			p.id as product_id, p.name, p.category, p.legal_category, p.therapeutic_class, p.unit, p.purchase_price, p.selling_price,
+			p.id as product_id, p.name, p.category, p.therapeutic_class, p.unit, p.sub_unit, p.purchase_price, p.selling_price,
 			'product_group' as type,
 			"" as void_reason,
 			GROUP_CONCAT(pb.id || ':' || pb.batch_number || ':' || pb.expiry_date || ':' || pb.current_stock, '||') as batches,
@@ -327,7 +329,7 @@ func (r *mysqlProductRepository) GetPendingGrouped() ([]map[string]interface{}, 
 		GROUP BY p.id)
 		UNION ALL
 		(SELECT 
-			s.id as product_id, "" as name, "" as category, "" as legal_category, "" as therapeutic_class, "" as unit, 0 as purchase_price, s.total_amount as selling_price,
+			s.id as product_id, "" as name, "" as category, "" as therapeutic_class, "" as unit, "" as sub_unit, 0 as purchase_price, s.total_amount as selling_price,
 			'void_request' as type,
 			s.void_reason,
 			"" as batches,
@@ -344,10 +346,10 @@ func (r *mysqlProductRepository) GetPendingGrouped() ([]map[string]interface{}, 
 	var results []map[string]interface{}
 	for rows.Next() {
 		var productID int
-		var name, category, legalCategory, therapeuticClass, unit, voidReason, batches, stockEntries, itemType string
+		var name, category, therapeuticClass, unit, subUnit, voidReason, batches, stockEntries, itemType string
 		var purchasePrice, sellingPrice float64
 
-		if err := rows.Scan(&productID, &name, &category, &legalCategory, &therapeuticClass, &unit, &purchasePrice, &sellingPrice, &itemType, &voidReason, &batches, &stockEntries); err != nil {
+		if err := rows.Scan(&productID, &name, &category, &therapeuticClass, &unit, &subUnit, &purchasePrice, &sellingPrice, &itemType, &voidReason, &batches, &stockEntries); err != nil {
 			return nil, err
 		}
 
@@ -355,9 +357,9 @@ func (r *mysqlProductRepository) GetPendingGrouped() ([]map[string]interface{}, 
 			"product_id":        productID,
 			"name":              name,
 			"category":          category,
-			"legal_category":    legalCategory,
 			"therapeutic_class": therapeuticClass,
 			"unit":              unit,
+			"sub_unit":          subUnit,
 			"purchase_price":    purchasePrice,
 			"selling_price":     sellingPrice,
 			"type":              itemType,
@@ -370,7 +372,7 @@ func (r *mysqlProductRepository) GetPendingGrouped() ([]map[string]interface{}, 
 }
 
 func (r *mysqlProductRepository) GetRecent(limit int) ([]map[string]interface{}, error) {
-	query := `SELECT id, name, sku_code, category, legal_category, therapeutic_class, selling_price,
+	query := `SELECT id, name, COALESCE(sku_code, ''), category, therapeutic_class, selling_price,
 	                 (SELECT COALESCE(SUM(current_stock), 0) FROM product_batches WHERE product_id = p.id) as total_stock
 	          FROM products p
 	          WHERE status = 'active'
@@ -385,9 +387,9 @@ func (r *mysqlProductRepository) GetRecent(limit int) ([]map[string]interface{},
 	var results []map[string]interface{}
 	for rows.Next() {
 		var id, totalStock int
-		var name, sku, category, legalCategory, therapeuticClass string
+		var name, sku, category, therapeuticClass string
 		var price float64
-		if err := rows.Scan(&id, &name, &sku, &category, &legalCategory, &therapeuticClass, &price, &totalStock); err != nil {
+		if err := rows.Scan(&id, &name, &sku, &category, &therapeuticClass, &price, &totalStock); err != nil {
 			return nil, err
 		}
 		results = append(results, map[string]interface{}{
@@ -395,7 +397,6 @@ func (r *mysqlProductRepository) GetRecent(limit int) ([]map[string]interface{},
 			"name":              name,
 			"sku_code":          sku,
 			"category":          category,
-			"legal_category":    legalCategory,
 			"therapeutic_class": therapeuticClass,
 			"selling_price":     price,
 			"total_stock":       totalStock,
@@ -406,7 +407,7 @@ func (r *mysqlProductRepository) GetRecent(limit int) ([]map[string]interface{},
 
 func (r *mysqlProductRepository) GetBestSellers(limit int) ([]map[string]interface{}, error) {
 	// First, try to get products by sales quantity
-	query := `SELECT p.id, p.name, p.sku_code, p.category, p.legal_category, p.therapeutic_class, p.unit, p.items_per_unit, p.storage_location, 
+	query := `SELECT p.id, p.name, COALESCE(p.sku_code, ''), p.category, p.therapeutic_class, p.unit, p.sub_unit, p.items_per_unit, p.storage_location, 
 	                 p.purchase_price, p.selling_price, p.status, p.is_verified,
 	                 COALESCE(SUM(si.quantity), 0) as total_sold,
 	                 (SELECT COALESCE(SUM(current_stock), 0) FROM product_batches WHERE product_id = p.id AND is_verified = 1) as total_stock
@@ -428,7 +429,7 @@ func (r *mysqlProductRepository) GetBestSellers(limit int) ([]map[string]interfa
 	for rows.Next() {
 		var p domain.Product
 		var totalSold, totalStock int
-		if err := rows.Scan(&p.ID, &p.Name, &p.SKUCode, &p.Category, &p.LegalCategory, &p.TherapeuticClass, &p.Unit, &p.ItemsPerUnit, &p.StorageLocation, &p.PurchasePrice, &p.SellingPrice, &p.Status, &p.IsVerified, &totalSold, &totalStock); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.SKUCode, &p.Category, &p.TherapeuticClass, &p.Unit, &p.SubUnit, &p.ItemsPerUnit, &p.StorageLocation, &p.PurchasePrice, &p.SellingPrice, &p.Status, &p.IsVerified, &totalSold, &totalStock); err != nil {
 			return nil, err
 		}
 		products = append(products, map[string]interface{}{
@@ -436,9 +437,9 @@ func (r *mysqlProductRepository) GetBestSellers(limit int) ([]map[string]interfa
 			"name":              p.Name,
 			"sku_code":          p.SKUCode,
 			"category":          p.Category,
-			"legal_category":    p.LegalCategory,
 			"therapeutic_class": p.TherapeuticClass,
 			"unit":              p.Unit,
+			"sub_unit":          p.SubUnit,
 			"items_per_unit":    p.ItemsPerUnit,
 			"storage_location":  p.StorageLocation,
 			"purchase_price":    p.PurchasePrice,
@@ -462,7 +463,7 @@ func (r *mysqlProductRepository) GetBestSellers(limit int) ([]map[string]interfa
 	}
 
 	remainingLimit := limit - len(products)
-	recentQuery := `SELECT p.id, p.name, p.sku_code, p.category, p.legal_category, p.therapeutic_class, p.unit, p.items_per_unit, p.storage_location, 
+	recentQuery := `SELECT p.id, p.name, COALESCE(p.sku_code, ''), p.category, p.therapeutic_class, p.unit, p.sub_unit, p.items_per_unit, p.storage_location, 
 	                       p.purchase_price, p.selling_price, p.status, p.is_verified,
 	                       (SELECT COALESCE(SUM(current_stock), 0) FROM product_batches WHERE product_id = p.id AND is_verified = 1) as total_stock
 	                FROM products p
@@ -493,7 +494,7 @@ func (r *mysqlProductRepository) GetBestSellers(limit int) ([]map[string]interfa
 	for recentRows.Next() {
 		var p domain.Product
 		var totalStock int
-		if err := recentRows.Scan(&p.ID, &p.Name, &p.SKUCode, &p.Category, &p.LegalCategory, &p.TherapeuticClass, &p.Unit, &p.ItemsPerUnit, &p.StorageLocation, &p.PurchasePrice, &p.SellingPrice, &p.Status, &p.IsVerified, &totalStock); err != nil {
+		if err := recentRows.Scan(&p.ID, &p.Name, &p.SKUCode, &p.Category, &p.TherapeuticClass, &p.Unit, &p.SubUnit, &p.ItemsPerUnit, &p.StorageLocation, &p.PurchasePrice, &p.SellingPrice, &p.Status, &p.IsVerified, &totalStock); err != nil {
 			return products, nil
 		}
 		products = append(products, map[string]interface{}{
@@ -501,9 +502,9 @@ func (r *mysqlProductRepository) GetBestSellers(limit int) ([]map[string]interfa
 			"name":              p.Name,
 			"sku_code":          p.SKUCode,
 			"category":          p.Category,
-			"legal_category":    p.LegalCategory,
 			"therapeutic_class": p.TherapeuticClass,
 			"unit":              p.Unit,
+			"sub_unit":          p.SubUnit,
 			"items_per_unit":    p.ItemsPerUnit,
 			"storage_location":  p.StorageLocation,
 			"purchase_price":    p.PurchasePrice,
@@ -519,7 +520,7 @@ func (r *mysqlProductRepository) GetBestSellers(limit int) ([]map[string]interfa
 }
 
 func (r *mysqlProductRepository) SearchWithAllBatches(search, filter string) ([]map[string]interface{}, error) {
-	query := `SELECT p.id, p.name, p.sku_code, p.category, p.legal_category, p.therapeutic_class, p.unit, p.items_per_unit,
+	query := `SELECT p.id, p.name, COALESCE(p.sku_code, ''), p.category, p.therapeutic_class, p.unit, p.sub_unit, p.items_per_unit,
 	                 b.id as batch_id, b.batch_number, b.expiry_date, b.current_stock
 	          FROM products p 
 	          JOIN product_batches b ON p.id = b.product_id
@@ -543,8 +544,8 @@ func (r *mysqlProductRepository) SearchWithAllBatches(search, filter string) ([]
 	var results []map[string]interface{}
 	for rows.Next() {
 		var id, batchID, currentStock, itemsPerUnit int
-		var name, sku, category, legalCategory, therapeuticClass, unit, batchNumber, expiryDate string
-		if err := rows.Scan(&id, &name, &sku, &category, &legalCategory, &therapeuticClass, &unit, &itemsPerUnit, &batchID, &batchNumber, &expiryDate, &currentStock); err != nil {
+		var name, sku, category, therapeuticClass, unit, subUnit, batchNumber, expiryDate string
+		if err := rows.Scan(&id, &name, &sku, &category, &therapeuticClass, &unit, &subUnit, &itemsPerUnit, &batchID, &batchNumber, &expiryDate, &currentStock); err != nil {
 			return nil, err
 		}
 		results = append(results, map[string]interface{}{
@@ -552,9 +553,9 @@ func (r *mysqlProductRepository) SearchWithAllBatches(search, filter string) ([]
 			"name":              name,
 			"sku_code":          sku,
 			"category":          category,
-			"legal_category":    legalCategory,
 			"therapeutic_class": therapeuticClass,
 			"unit":              unit,
+			"sub_unit":          subUnit,
 			"items_per_unit":    itemsPerUnit,
 			"batch_id":          batchID,
 			"batch_number":      batchNumber,

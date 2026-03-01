@@ -91,9 +91,8 @@ func main() {
 	mux.Handle("/admin/backup", middleware.RequireAuth(middleware.RequireAdmin(http.HandlerFunc(adminHandler.Backup))))
 	mux.Handle("/activity-log", middleware.RequireAuth(middleware.RequireAdmin(http.HandlerFunc(logHandler.Index))))
 
-	mux.Handle("/inventory", middleware.RequireAuth(http.HandlerFunc(productHandler.Index)))
 	mux.Handle("/products", middleware.RequireAuth(http.HandlerFunc(productHandler.Index)))
-	mux.Handle("/inventory/check", middleware.RequireAuth(http.HandlerFunc(productHandler.InventoryCheck)))
+	mux.Handle("/products/check", middleware.RequireAuth(http.HandlerFunc(productHandler.InventoryCheck)))
 	mux.Handle("/print-label", middleware.RequireAuth(http.HandlerFunc(productHandler.PrintLabel)))
 	mux.Handle("/settings", middleware.RequireAuth(middleware.RequireAdmin(http.HandlerFunc(userHandler.Settings))))
 	mux.Handle("/pos", middleware.RequireAuth(http.HandlerFunc(posHandler.Index)))

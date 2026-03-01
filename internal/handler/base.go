@@ -177,24 +177,27 @@ func (h *BaseHandler) getFuncMap(tz string) template.FuncMap {
 		"formatPercentage": func(v float64) string {
 			return fmt.Sprintf("%.1f%%", v)
 		},
-		"formatPcsToUnit": func(totalPcs int, unitName string, itemsPerUnit int) string {
-			if totalPcs <= 0 {
-				return fmt.Sprintf("0 %s", unitName)
+		"formatPcsToUnit": func(totalPcs int, unitName string, subUnitName string, itemsPerUnit int) string {
+			if subUnitName == "" {
+				subUnitName = "Pcs"
 			}
-			if itemsPerUnit <= 1 {
-				// No conversion needed
-				return fmt.Sprintf("%d %s", totalPcs, unitName)
+
+			if totalPcs <= 0 {
+				return fmt.Sprintf("0 %s", subUnitName)
+			}
+			if itemsPerUnit <= 1 || unitName == subUnitName {
+				return fmt.Sprintf("%d %s", totalPcs, subUnitName)
 			}
 
 			units := totalPcs / itemsPerUnit
 			remainingPcs := totalPcs % itemsPerUnit
 
 			if units > 0 && remainingPcs > 0 {
-				return fmt.Sprintf("%d %s %d PCS", units, unitName, remainingPcs)
+				return fmt.Sprintf("%d %s %d %s", units, unitName, remainingPcs, subUnitName)
 			} else if units > 0 {
 				return fmt.Sprintf("%d %s", units, unitName)
 			}
-			return fmt.Sprintf("%d PCS", remainingPcs)
+			return fmt.Sprintf("%d %s", remainingPcs, subUnitName)
 		},
 	}
 }

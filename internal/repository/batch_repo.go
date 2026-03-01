@@ -44,7 +44,7 @@ func (r *mysqlBatchRepository) WithTx(tx *sql.Tx) ProductBatchRepository {
 }
 
 func (r *mysqlBatchRepository) FindByProduct(productId int) ([]domain.ProductBatch, error) {
-	rows, err := r.getDB().Query("SELECT id, product_id, batch_number, expiry_date, current_stock, purchase_price, selling_price, is_verified, created_at FROM product_batches WHERE product_id = ? ORDER BY expiry_date ASC", productId)
+	rows, err := r.getDB().Query("SELECT id, product_id, batch_number, expiry_date, initial_qty, current_stock, purchase_price, selling_price, is_verified, created_at FROM product_batches WHERE product_id = ? ORDER BY expiry_date ASC", productId)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func (r *mysqlBatchRepository) FindByProduct(productId int) ([]domain.ProductBat
 	var batches []domain.ProductBatch
 	for rows.Next() {
 		var b domain.ProductBatch
-		if err := rows.Scan(&b.ID, &b.ProductID, &b.BatchNumber, &b.ExpiryDate, &b.CurrentStock, &b.PurchasePrice, &b.SellingPrice, &b.IsVerified, &b.CreatedAt); err != nil {
+		if err := rows.Scan(&b.ID, &b.ProductID, &b.BatchNumber, &b.ExpiryDate, &b.InitialQty, &b.CurrentStock, &b.PurchasePrice, &b.SellingPrice, &b.IsVerified, &b.CreatedAt); err != nil {
 			return nil, err
 		}
 		batches = append(batches, b)
@@ -83,8 +83,8 @@ func (r *mysqlBatchRepository) GetPendingCount() (int, error) {
 }
 
 func (r *mysqlBatchRepository) Create(b *domain.ProductBatch) (int, error) {
-	res, err := r.getDB().Exec("INSERT INTO product_batches (product_id, batch_number, expiry_date, current_stock, purchase_price, selling_price, is_verified, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
-		b.ProductID, b.BatchNumber, b.ExpiryDate, b.CurrentStock, b.PurchasePrice, b.SellingPrice, b.IsVerified)
+	res, err := r.getDB().Exec("INSERT INTO product_batches (product_id, batch_number, expiry_date, initial_qty, current_stock, purchase_price, selling_price, is_verified, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+		b.ProductID, b.BatchNumber, b.ExpiryDate, b.InitialQty, b.CurrentStock, b.PurchasePrice, b.SellingPrice, b.IsVerified)
 	if err != nil {
 		return 0, err
 	}
@@ -98,7 +98,7 @@ func (r *mysqlBatchRepository) GetWithProduct(id int) (map[string]interface{}, e
 
 	var b domain.ProductBatch
 	var productName string
-	err := row.Scan(&b.ID, &b.ProductID, &b.BatchNumber, &b.ExpiryDate, &b.CurrentStock, &b.PurchasePrice, &b.SellingPrice, &b.IsVerified, &b.CreatedAt, &productName)
+	err := row.Scan(&b.ID, &b.ProductID, &b.BatchNumber, &b.ExpiryDate, &b.InitialQty, &b.CurrentStock, &b.PurchasePrice, &b.SellingPrice, &b.IsVerified, &b.CreatedAt, &productName)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func (r *mysqlBatchRepository) GetWithProduct(id int) (map[string]interface{}, e
 }
 
 func (r *mysqlBatchRepository) GetAvailableForProduct(productId int) ([]domain.ProductBatch, error) {
-	rows, err := r.getDB().Query("SELECT id, product_id, batch_number, expiry_date, current_stock, purchase_price, selling_price, is_verified FROM product_batches WHERE product_id = ? AND current_stock > 0 AND is_verified = 1 ORDER BY expiry_date ASC", productId)
+	rows, err := r.getDB().Query("SELECT id, product_id, batch_number, expiry_date, initial_qty, current_stock, purchase_price, selling_price, is_verified FROM product_batches WHERE product_id = ? AND current_stock > 0 AND is_verified = 1 ORDER BY expiry_date ASC", productId)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +118,7 @@ func (r *mysqlBatchRepository) GetAvailableForProduct(productId int) ([]domain.P
 	var batches []domain.ProductBatch
 	for rows.Next() {
 		var b domain.ProductBatch
-		if err := rows.Scan(&b.ID, &b.ProductID, &b.BatchNumber, &b.ExpiryDate, &b.CurrentStock, &b.PurchasePrice, &b.SellingPrice, &b.IsVerified); err != nil {
+		if err := rows.Scan(&b.ID, &b.ProductID, &b.BatchNumber, &b.ExpiryDate, &b.InitialQty, &b.CurrentStock, &b.PurchasePrice, &b.SellingPrice, &b.IsVerified); err != nil {
 			return nil, err
 		}
 		batches = append(batches, b)
@@ -163,7 +163,7 @@ func (r *mysqlBatchRepository) GetExpiringBatches(days int) ([]map[string]interf
 	for rows.Next() {
 		var b domain.ProductBatch
 		var productName string
-		err := rows.Scan(&b.ID, &b.ProductID, &b.BatchNumber, &b.ExpiryDate, &b.CurrentStock, &b.PurchasePrice, &b.SellingPrice, &b.IsVerified, &b.CreatedAt, &productName)
+		err := rows.Scan(&b.ID, &b.ProductID, &b.BatchNumber, &b.ExpiryDate, &b.InitialQty, &b.CurrentStock, &b.PurchasePrice, &b.SellingPrice, &b.IsVerified, &b.CreatedAt, &productName)
 		if err != nil {
 			return nil, err
 		}
@@ -177,8 +177,8 @@ func (r *mysqlBatchRepository) GetExpiringBatches(days int) ([]map[string]interf
 
 func (r *mysqlBatchRepository) FindByID(id int) (*domain.ProductBatch, error) {
 	b := &domain.ProductBatch{}
-	err := r.getDB().QueryRow("SELECT id, product_id, batch_number, expiry_date, current_stock, purchase_price, selling_price, is_verified, created_at FROM product_batches WHERE id = ?", id).
-		Scan(&b.ID, &b.ProductID, &b.BatchNumber, &b.ExpiryDate, &b.CurrentStock, &b.PurchasePrice, &b.SellingPrice, &b.IsVerified, &b.CreatedAt)
+	err := r.getDB().QueryRow("SELECT id, product_id, batch_number, expiry_date, initial_qty, current_stock, purchase_price, selling_price, is_verified, created_at FROM product_batches WHERE id = ?", id).
+		Scan(&b.ID, &b.ProductID, &b.BatchNumber, &b.ExpiryDate, &b.InitialQty, &b.CurrentStock, &b.PurchasePrice, &b.SellingPrice, &b.IsVerified, &b.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil

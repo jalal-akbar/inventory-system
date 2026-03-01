@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function fetchDrugs(query) {
         try {
-            const response = await fetch(`api/drugs/search.php?q=${encodeURIComponent(query)}`);
+            const response = await fetch(`/api/products/search?q=${encodeURIComponent(query)}`);
             if (!response.ok) throw new Error('Network response was not ok');
 
             const data = await response.json();
@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
             searchResults.innerHTML = '<div class="search-result-item">No drugs found.</div>';
         } else {
             searchResults.innerHTML = results.map(drug => `
-                <div class="search-result-item" onclick="window.location.href='inventory.php?id=${drug.id}'">
+                <div class="search-result-item" onclick="window.location.href='/products?search=${encodeURIComponent(drug.name)}'">
                     <div class="result-header">
                         <span class="result-name">${drug.name}</span>
                         <span class="result-price">${drug.formatted_price}</span>
@@ -174,6 +174,28 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('sidebar-collapsed', document.body.classList.contains('sidebar-collapsed'));
         });
     }
+    
+    // Global Backdrop Cleanup Logic
+    // Fixes "shadow" issue where backdrops persist after navigation or HTMX swaps
+    function cleanupBackdrops() {
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        const openModals = document.querySelectorAll('.modal.show');
+        
+        if (backdrops.length > 0 && openModals.length === 0) {
+            console.log('Cleaning up orphaned modal backdrops...');
+            backdrops.forEach(b => b.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        }
+    }
+
+    // Run cleanup on page load and after HTMX swaps
+    cleanupBackdrops();
+    document.addEventListener('htmx:afterSwap', cleanupBackdrops);
+    
+    // Add a small delay cleanup for edge cases
+    setTimeout(cleanupBackdrops, 500);
 
 });
 
@@ -181,7 +203,7 @@ function updatePendingCount() {
     const badge = document.getElementById('pendingCount');
     if (!badge) return;
 
-    fetch('api/drugs/pending-count')
+    fetch('/api/products/pending-count')
         .then(res => res.json())
         .then(data => {
             badge.innerText = data.count;

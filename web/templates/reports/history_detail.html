@@ -1,0 +1,127 @@
+<div class="modal fade" id="historyDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <div class="modal-header border-bottom-0 pb-0 px-4 pt-4">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark mb-1">{{ t "transaction_details" .Lang }} #{{ .sale.ID }}</h5>
+                    <p class="text-muted small mb-0">{{ formatDateTime .sale.CreatedAt }}</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body px-4 py-4">
+                <div class="row g-3 mb-4">
+                    <div class="col-sm-6">
+                        <div class="bg-light bg-opacity-50 p-3 rounded-3">
+                            <div class="small text-muted text-uppercase fw-bold mb-1" style="font-size: 0.7rem;">{{ t "customer" .Lang }}</div>
+                            <div class="fw-bold text-dark">{{ if .sale.CustomerName }}{{ .sale.CustomerName }}{{ else }}<span class="text-muted">{{ t "general_guest" .Lang }}</span>{{ end }}</div>
+                            {{ if .sale.DoctorName }}
+                                <div class="small text-muted mt-1"><i data-lucide="stethoscope" style="width: 12px; height: 12px;" class="me-1"></i>{{ .sale.DoctorName }}</div>
+                            {{ end }}
+                            {{ if .sale.PrescriptionNumber }}
+                                <div class="small text-muted mt-1"><i data-lucide="file-text" style="width: 12px; height: 12px;" class="me-1"></i>Resep: {{ .sale.PrescriptionNumber }}</div>
+                            {{ end }}
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="bg-light bg-opacity-50 p-3 rounded-3 h-100">
+                            <div class="small text-muted text-uppercase fw-bold mb-1" style="font-size: 0.7rem;">{{ t "payment_method" .Lang }}</div>
+                            <div class="fw-bold text-dark text-capitalize">{{ .sale.PaymentMethod }}</div>
+                            
+                            {{ if eq .sale.Status "void" }}
+                            <div class="mt-2 text-danger small">
+                                <span class="fw-bold"><i data-lucide="alert-circle" style="width: 14px; height: 14px; margin-top: -2px;" class="me-1"></i>{{ t "voided" .Lang }}</span>
+                                {{ if .sale.VoidReason }}
+                                <div class="mt-1 ps-3 border-start border-danger border-2">{{ .sale.VoidReason }}</div>
+                                {{ end }}
+                            </div>
+                            {{ end }}
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold mb-3">{{ t "purchased_items" .Lang }}</h6>
+                <div class="table-responsive rounded-3 border">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="border-0 px-3 py-2 text-muted small fw-bold text-uppercase">{{ t "item" .Lang }}</th>
+                                <th class="border-0 px-3 py-2 text-muted small fw-bold text-uppercase text-center">{{ t "qty" .Lang }}</th>
+                                <th class="border-0 px-3 py-2 text-muted small fw-bold text-uppercase text-end">{{ t "price" .Lang }}</th>
+                                <th class="border-0 px-3 py-2 text-muted small fw-bold text-uppercase text-end">{{ t "subtotal" .Lang }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{ range .items }}
+                            <tr>
+                                <td class="px-3 py-2">
+                                    <div class="fw-bold text-dark small">{{ .product_name }}</div>
+                                    <div class="text-muted" style="font-size: 0.7rem;">{{ t "batch" .Lang }}: {{ .batch_number }}</div>
+                                </td>
+                                <td class="px-3 py-2 text-center">
+                                    <span class="badge bg-light text-dark border-0">
+                                        <!-- If the sale_unit is not the smallest unit, dividing the quantity provides the display amount -->
+                                        <!-- Wait, formatPcsToUnit handles formatting to proper units dynamically -->
+                                        {{ if eq .sale_unit .sub_unit }}
+                                            {{ .quantity }} {{ .sale_unit }}
+                                        {{ else }}
+                                            {{ formatPcsToUnit .quantity .sale_unit .sub_unit .items_per_unit }}
+                                        {{ end }}
+                                    </span>
+                                </td>
+                                <td class="px-3 py-2 text-end small">
+                                    <!-- Price is per Pcs, so multiple by items_per_unit if they bought the larger unit -->
+                                    {{ if eq .sale_unit .sub_unit }}
+                                        {{ formatRupiah .price }}
+                                    {{ else }}
+                                        {{ formatRupiah (mul .price .items_per_unit) }}
+                                    {{ end }}
+                                </td>
+                                <td class="px-3 py-2 text-end fw-bold small">
+                                    {{ formatRupiah .subtotal }}
+                                </td>
+                            </tr>
+                            {{ end }}
+                        </tbody>
+                        <tfoot class="bg-light">
+                            <tr>
+                                <td colspan="3" class="px-3 py-2 text-end text-muted small fw-bold">{{ t "pos_subtotal" .Lang }}</td>
+                                <td class="px-3 py-2 text-end fw-bold small">{{ formatRupiah (add .sale.TotalAmount .sale.Discount) }}</td>
+                            </tr>
+                            {{ if gt .sale.Discount 0.0 }}
+                            <tr>
+                                <td colspan="3" class="px-3 py-2 text-end text-muted small fw-bold">{{ t "pos_discount" .Lang }}</td>
+                                <td class="px-3 py-2 text-end fw-bold small text-danger">-{{ formatRupiah .sale.Discount }}</td>
+                            </tr>
+                            {{ end }}
+                            <tr>
+                                <td colspan="3" class="px-3 py-2 text-end text-dark small fw-bold">{{ t "pos_total" .Lang }}</td>
+                                <td class="px-3 py-2 text-end fw-bold text-primary">{{ formatRupiah .sale.TotalAmount }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="modal-footer border-top-0 pt-0 px-4 pb-4">
+                <button type="button" class="btn btn-secondary rounded-3 px-4" data-bs-dismiss="modal">{{ t "close" .Lang }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var historyModal = new bootstrap.Modal(document.getElementById('historyDetailModal'));
+    historyModal.show();
+    
+    document.getElementById('historyDetailModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('modal-container').innerHTML = '';
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    });
+
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+</script>

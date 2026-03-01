@@ -25,22 +25,24 @@ func TestSaleService_ProcessAndVoid(t *testing.T) {
 		sku_code TEXT UNIQUE,
 		category TEXT,
 		unit TEXT,
+		sub_unit TEXT,
 		items_per_unit INTEGER,
 		storage_location TEXT,
 		purchase_price REAL,
 		selling_price REAL,
 		min_stock INTEGER,
 		status TEXT,
-		legal_category TEXT,
 		therapeutic_class TEXT,
 		is_verified INTEGER,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
 	CREATE TABLE product_batches (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		product_id INTEGER,
 		batch_number TEXT,
 		expiry_date TEXT,
+		initial_qty INTEGER,
 		current_stock INTEGER,
 		purchase_price REAL,
 		selling_price REAL,
@@ -71,6 +73,7 @@ func TestSaleService_ProcessAndVoid(t *testing.T) {
 		price REAL,
 		subtotal REAL,
 		sale_unit TEXT,
+		sub_unit TEXT,
 		items_per_unit INTEGER
 	);
 	CREATE TABLE activity_logs (
@@ -119,6 +122,7 @@ func TestSaleService_ProcessAndVoid(t *testing.T) {
 		ProductID:     pID,
 		BatchNumber:   "B1-INT-SOON",
 		ExpiryDate:    "2026-05-01",
+		InitialQty:    10,
 		CurrentStock:  10,
 		PurchasePrice: 1000,
 		SellingPrice:  1500,
@@ -134,6 +138,7 @@ func TestSaleService_ProcessAndVoid(t *testing.T) {
 		ProductID:     pID,
 		BatchNumber:   "B2-INT-LATER",
 		ExpiryDate:    "2027-01-01",
+		InitialQty:    10,
 		CurrentStock:  10,
 		PurchasePrice: 1000,
 		SellingPrice:  1500,
@@ -192,22 +197,24 @@ func TestSaleService_DiscountValidation(t *testing.T) {
 		sku_code TEXT UNIQUE,
 		category TEXT,
 		unit TEXT,
+		sub_unit TEXT,
 		items_per_unit INTEGER,
 		storage_location TEXT,
 		purchase_price REAL,
 		selling_price REAL,
 		min_stock INTEGER,
 		status TEXT,
-		legal_category TEXT,
 		therapeutic_class TEXT,
 		is_verified INTEGER,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
 	CREATE TABLE product_batches (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		product_id INTEGER,
 		batch_number TEXT,
 		expiry_date TEXT,
+		initial_qty INTEGER,
 		current_stock INTEGER,
 		purchase_price REAL,
 		selling_price REAL,
@@ -238,6 +245,7 @@ func TestSaleService_DiscountValidation(t *testing.T) {
 		price REAL,
 		subtotal REAL,
 		sale_unit TEXT,
+		sub_unit TEXT,
 		items_per_unit INTEGER
 	);
 	CREATE TABLE activity_logs (
@@ -258,11 +266,11 @@ func TestSaleService_DiscountValidation(t *testing.T) {
 	s := NewSaleService(db, saleRepo, productRepo, batchRepo, logRepo)
 
 	// Setup 1 item: 1000 price, 10 stock
-	pID, err := productRepo.Create(&domain.Product{Name: "Test", Status: "active", SellingPrice: 1000, Unit: "Pcs", ItemsPerUnit: 1})
+	pID, err := productRepo.Create(&domain.Product{Name: "Test", Status: "active", SellingPrice: 1000, Unit: "Pcs", SubUnit: "Pcs", ItemsPerUnit: 1})
 	if err != nil {
 		t.Fatalf("Failed to create product: %v", err)
 	}
-	_, err = batchRepo.Create(&domain.ProductBatch{ProductID: pID, CurrentStock: 10, SellingPrice: 1000, IsVerified: true})
+	_, err = batchRepo.Create(&domain.ProductBatch{ProductID: pID, InitialQty: 20, CurrentStock: 10, SellingPrice: 1000, IsVerified: true})
 	if err != nil {
 		t.Fatalf("Failed to create batch: %v", err)
 	}

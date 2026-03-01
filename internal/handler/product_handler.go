@@ -102,7 +102,7 @@ func (h *ProductHandler) ProcessInventoryCheck(w http.ResponseWriter, r *http.Re
 		}
 	}
 
-	http.Redirect(w, r, "/inventory/check?message=Inventory+adjustments+saved+successfully", http.StatusSeeOther)
+	http.Redirect(w, r, "/products/check?message=Inventory+adjustments+saved+successfully", http.StatusSeeOther)
 }
 
 func (h *ProductHandler) PrintLabel(w http.ResponseWriter, r *http.Request) {

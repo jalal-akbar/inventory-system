@@ -5,9 +5,15 @@ import (
 	"time"
 )
 
-var ValidUnits = []string{"Box", "Strip", "Pcs", "Vial", "Botol", "Tube", "Sachet", "Ampul", "Pot", "Dus"}
+var ValidUnits = []string{"Box", "Strip", "Pcs"}
 
-var ValidLegalCategories = []string{"OTC", "Rx"}
+var ValidCategories = []string{
+	"Medicine - OTC",
+	"Medicine - Prescription",
+	"Supplements",
+	"Medical Supplies",
+	"Maternal & Baby",
+}
 
 var ValidTherapeuticClasses = []string{
 	"Analgesics",
@@ -22,18 +28,18 @@ var ValidTherapeuticClasses = []string{
 	"Bronchodilators",
 }
 
-func IsValidUnit(unit string) bool {
-	for _, v := range ValidUnits {
-		if strings.EqualFold(v, unit) {
+func IsValidCategory(cat string) bool {
+	for _, v := range ValidCategories {
+		if strings.EqualFold(v, cat) {
 			return true
 		}
 	}
 	return false
 }
 
-func IsValidLegalCategory(cat string) bool {
-	for _, v := range ValidLegalCategories {
-		if strings.EqualFold(v, cat) {
+func IsValidUnit(unit string) bool {
+	for _, v := range ValidUnits {
+		if strings.EqualFold(v, unit) {
 			return true
 		}
 	}
@@ -57,9 +63,9 @@ type Product struct {
 	Name             string    `json:"name"`
 	SKUCode          string    `json:"sku_code"`
 	Category         string    `json:"category"` // Kept for backward compatibility
-	LegalCategory    string    `json:"legal_category"`
 	TherapeuticClass string    `json:"therapeutic_class"`
 	Unit             string    `json:"unit"`
+	SubUnit          string    `json:"sub_unit"`
 	ItemsPerUnit     int       `json:"items_per_unit"`
 	StorageLocation  string    `json:"storage_location"`
 	PurchasePrice    float64   `json:"purchase_price"`

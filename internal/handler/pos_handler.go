@@ -70,8 +70,9 @@ func (h *PosHandler) Checkout(w http.ResponseWriter, r *http.Request) {
 
 	var data struct {
 		Items []struct {
-			ID  int `json:"id"`
-			Qty int `json:"qty"`
+			ID   int    `json:"id"`
+			Qty  int    `json:"qty"`
+			Unit string `json:"unit"`
 		} `json:"items"`
 		PaymentMethod string  `json:"payment_method"`
 		CustomerName  string  `json:"customer_name"`
@@ -88,6 +89,7 @@ func (h *PosHandler) Checkout(w http.ResponseWriter, r *http.Request) {
 		saleItems = append(saleItems, domain.SaleItem{
 			ProductID: item.ID,
 			Quantity:  item.Qty,
+			SaleUnit:  item.Unit,
 		})
 	}
 

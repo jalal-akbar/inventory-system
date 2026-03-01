@@ -1,0 +1,146 @@
+{{ define "inventory/details_modal.html" }}
+<div class="modal fade" id="productDetailsModal" tabindex="-1" aria-labelledby="productDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header border-0 bg-light p-4">
+                <h5 class="modal-title fw-bold text-dark d-flex align-items-center gap-2" id="productDetailsModalLabel">
+                    <i data-lucide="package" class="text-primary" style="width: 24px; height: 24px;"></i>
+                    <span>{{ t "product_info" .Lang }}</span>
+                </h5>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-4">
+                    <!-- Basic Info -->
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded-4 h-100">
+                            <h6 class="fw-bold mb-3 d-flex align-items-center gap-2 text-muted">
+                                <i data-lucide="info" style="width:16px; height:16px;"></i> {{ t "basic_information" .Lang }}
+                            </h6>
+                            <table class="table table-borderless table-sm small mb-0">
+                                <tbody>
+                                    <tr>
+                                        <td class="text-muted w-50">Name</td>
+                                        <td class="fw-bold text-dark">{{ .Product.name }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">SKU</td>
+                                        <td class="fw-bold text-dark">{{ .Product.sku_code }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">{{ t "category" .Lang }}</td>
+                                        <td class="fw-bold text-dark">{{ .Product.category }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">{{ t "therapeutic_class" .Lang }}</td>
+                                        <td class="fw-bold text-dark">{{ if .Product.therapeutic_class }}{{ .Product.therapeutic_class }}{{ else }}-{{ end }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">{{ t "storage_location" .Lang }}</td>
+                                        <td class="fw-bold text-dark">{{ if .Product.storage_location }}{{ .Product.storage_location }}{{ else }}-{{ end }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Pricing & Stock -->
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded-4 h-100">
+                            <h6 class="fw-bold mb-3 d-flex align-items-center gap-2 text-muted">
+                                <i data-lucide="tag" style="width:16px; height:16px;"></i> Pricing & Units
+                            </h6>
+                            <table class="table table-borderless table-sm small mb-0">
+                                <tbody>
+                                    <tr>
+                                        <td class="text-muted w-50">{{ t "purchase_price" .Lang }}</td>
+                                        <td class="fw-bold text-success">Rp {{ .Product.purchase_price }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">{{ t "selling_price" .Lang }}</td>
+                                        <td class="fw-bold text-primary">Rp {{ .Product.selling_price }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">Main Unit</td>
+                                        <td class="fw-bold text-dark">{{ .Product.unit }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">Items per Unit</td>
+                                        <td class="fw-bold text-dark">{{ .Product.items_per_unit }} {{ if .Product.sub_unit }}{{ .Product.sub_unit }}{{ else }}Pcs{{ end }}/{{ .Product.unit }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">Total Stock</td>
+                                        <td class="fw-bold text-dark">{{ .Product.total_stock }} Pcs</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Batches Table -->
+                    <div class="col-12 mt-4">
+                        <h6 class="fw-bold mb-3 d-flex align-items-center gap-2 text-muted">
+                            <i data-lucide="layers" style="width:16px; height:16px;"></i> {{ t "batch_inventory" .Lang }}
+                        </h6>
+                        <div class="table-responsive bg-white rounded-3 shadow-sm border">
+                            <table class="table table-hover table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3 py-2 small fw-bold text-muted">{{ t "batch_no" .Lang }}</th>
+                                        <th class="py-2 small fw-bold text-muted">{{ t "expiry_date" .Lang }}</th>
+                                        <th class="py-2 small fw-bold text-muted">Initial Qty</th>
+                                        <th class="py-2 small fw-bold text-muted">Current Stock</th>
+                                        <th class="py-2 small fw-bold text-muted">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {{ if not .Batches }}
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-3 small">No batches found</td>
+                                    </tr>
+                                    {{ else }}
+                                        {{ range .Batches }}
+                                        <tr>
+                                            <td class="ps-3 py-2 small fw-medium">{{ .batch_number }}</td>
+                                            <td class="py-2 small fw-medium">{{ .expiry_date }}</td>
+                                            <td class="py-2 small fw-medium">{{ .initial_qty }} {{ $.Product.unit }}</td>
+                                            <td class="py-2 small fw-medium">{{ .current_stock }} Pcs</td>
+                                            <td class="py-2 small">
+                                                {{ if eq .is_verified true }}
+                                                <span class="badge bg-success bg-opacity-10 text-success border-0">Verified</span>
+                                                {{ else }}
+                                                <span class="badge bg-warning bg-opacity-10 text-warning border-0">Pending</span>
+                                                {{ end }}
+                                            </td>
+                                        </tr>
+                                        {{ end }}
+                                    {{ end }}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-4 bg-light">
+                <button type="button" class="btn btn-secondary px-4 py-2 rounded-3 fw-bold" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize icons for the newly loaded modal
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+    
+    // Create and show modal
+    var myModal = new bootstrap.Modal(document.getElementById('productDetailsModal'));
+    myModal.show();
+
+    // Clean up HTMX container when modal is closed
+    document.getElementById('productDetailsModal').addEventListener('hidden.bs.modal', function (event) {
+        document.getElementById('modal-container').innerHTML = ''; // clears the modal from DOM
+    });
+</script>
+{{ end }}

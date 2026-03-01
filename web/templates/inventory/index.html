@@ -51,17 +51,17 @@
         </div>
 
         <!-- Product Table -->
-        <div class="card border-0 shadow-sm p-0 rounded-4 bg-white overflow-hidden">
-            <div class="table-responsive">
+        <div class="card border-0 shadow-sm p-0 rounded-4 bg-white" style="overflow: visible;">
+            <div class="table-responsive" style="overflow: visible;">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light">
                         <tr>
                             <th class="border-0 px-4 py-3 text-muted small fw-bold text-uppercase">{{ t "product_info" .Lang }}</th>
                             <th class="border-0 py-3 text-muted small fw-bold text-uppercase">{{ t "category" .Lang }}</th>
                             <th class="border-0 py-3 text-muted small fw-bold text-uppercase text-center">{{ t "stock" .Lang }}</th>
-                            <th class="border-0 py-3 text-muted small fw-bold text-uppercase">{{ t "price_sell" .Lang }}</th>
+                            <th class="border-0 py-3 text-muted small fw-bold text-uppercase">{{ t "purchase_sell_price" .Lang }}</th>
                             <th class="border-0 py-3 text-muted small fw-bold text-uppercase">{{ t "status" .Lang }}</th>
-                            <th class="border-0 px-4 py-3 text-muted small fw-bold text-uppercase text-end">{{ t "actions" .Lang }}</th>
+                            <th class="border-0 px-4 py-3 text-muted small fw-bold text-uppercase text-center">{{ t "actions" .Lang }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -85,9 +85,7 @@
                                 </td>
                                 <td class="py-3">
                                     <div class="d-flex flex-column gap-1">
-                                        <span class="badge {{ if eq .legal_category "Rx" }}bg-danger{{ else }}bg-success{{ end }} bg-opacity-10 {{ if eq .legal_category "Rx" }}text-danger{{ else }}text-success{{ end }} border-0 px-2 py-1" style="width: fit-content;">
-                                            {{ .legal_category }}
-                                        </span>
+                                        <span class="fw-bold text-dark">{{ .category }}</span>
                                         {{ if .therapeutic_class }}
                                         <span class="smaller text-muted">{{ .therapeutic_class }}</span>
                                         {{ end }}
@@ -96,36 +94,54 @@
                                 <td class="py-3 text-center">
                                     <div class="d-flex flex-column align-items-center">
                                         <span class="fw-bold {{ if lt .total_stock 10 }}text-danger{{ else if lt .total_stock 20 }}text-warning{{ else }}text-success{{ end }}">
-                                            {{ .total_stock }}
+                                            {{ formatPcsToUnit .total_stock .unit .sub_unit .items_per_unit }}
                                         </span>
-                                        <span class="smaller text-muted">{{ .unit }}</span>
                                     </div>
                                 </td>
                                 <td class="py-3">
-                                    <span class="fw-bold text-primary">{{ formatRupiah .selling_price }}</span>
+                                    <div class="d-flex flex-column gap-1">
+                                        {{ if eq $.CurrentUser.Role "admin" }}
+                                        <span class="fw-bold text-success" title="{{ t `purchase_price` $.Lang }}">
+                                            <i data-lucide="trending-down" style="width: 14px; height: 14px;" class="me-1"></i>{{ formatRupiah .purchase_price }} <small class="text-muted fw-normal">/ Pcs</small>
+                                        </span>
+                                        {{ end }}
+                                        <span class="fw-bold text-primary" title="{{ t `selling_price` $.Lang }}">
+                                            <i data-lucide="trending-up" style="width: 14px; height: 14px;" class="me-1"></i>{{ formatRupiah .selling_price }} <small class="text-muted fw-normal">/ Pcs</small>
+                                        </span>
+                                    </div>
                                 </td>
                                 <td class="py-3">
-                                    {{ if not .is_verified }}
-                                        <span class="badge bg-warning bg-opacity-10 text-warning border-0 px-2 py-1">
-                                            <i data-lucide="shield-alert" style="width: 12px; height: 12px;"></i> {{ t "pending" .Lang }}
-                                        </span>
-                                    {{ else if eq .status "active" }}
-                                        <span class="badge bg-success bg-opacity-10 text-success border-0 px-2 py-1">{{ t "active" .Lang }}</span>
-                                    {{ else }}
-                                        <span class="badge bg-danger bg-opacity-10 text-danger border-0 px-2 py-1">{{ t "inactive" .Lang }}</span>
-                                    {{ end }}
+                                    <div class="d-flex flex-column gap-1 align-items-start">
+                                        <!-- Active / Inactive Status -->
+                                        {{ if eq .status "active" }}
+                                            <span class="badge bg-success bg-opacity-10 text-success border-0 px-2 py-1">{{ t "active" $.Lang }}</span>
+                                        {{ else }}
+                                            <span class="badge bg-danger bg-opacity-10 text-danger border-0 px-2 py-1">{{ t "inactive" $.Lang }}</span>
+                                        {{ end }}
+                                        
+                                        <!-- Verification Status -->
+                                        {{ if not .is_verified }}
+                                            <span class="badge bg-warning bg-opacity-10 text-warning border-0 px-2 py-1 mt-1">
+                                                <i data-lucide="shield-alert" style="width: 12px; height: 12px;"></i> {{ t "pending" $.Lang }}
+                                            </span>
+                                        {{ else }}
+                                            <span class="badge bg-info bg-opacity-10 text-info border-0 px-2 py-1 mt-1">
+                                                <i data-lucide="shield-check" style="width: 12px; height: 12px;"></i> Approved
+                                            </span>
+                                        {{ end }}
+                                    </div>
                                 </td>
-                                <td class="px-4 py-3 text-end">
+                                <td class="px-4 py-3 align-middle text-center" style="width: 80px;">
                                     <div class="dropdown">
-                                        <button class="btn btn-sm btn-light p-2 rounded-3 border-0" type="button" data-bs-toggle="dropdown">
-                                            <i data-lucide="more-vertical" style="width: 16px; height: 16px;"></i>
+                                        <button class="btn btn-sm btn-light text-muted p-1 rounded-circle border-0 dropdown-toggle-hide-arrow d-flex align-items-center justify-content-center shadow-sm mx-auto" style="width: 32px; height: 32px; transition: all 0.2s ease;" type="button" data-bs-toggle="dropdown" aria-expanded="false" onmouseover="this.classList.replace('btn-light', 'btn-primary'); this.classList.replace('text-muted', 'text-white');" onmouseout="this.classList.replace('btn-primary', 'btn-light'); this.classList.replace('text-white', 'text-muted');">
+                                            <i data-lucide="more-vertical" style="width: 18px; height: 18px;"></i>
                                         </button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3">
-                                            <li><a class="dropdown-item py-2" href="javascript:void(0)" hx-get="/api/products/details?id={{ .id }}" hx-target="#modal-container"><i data-lucide="eye" class="me-2" style="width: 16px; height: 16px;"></i> {{ t "details" .Lang }}</a></li>
-                                            <li><a class="dropdown-item py-2" href="javascript:void(0)" onclick="openEditModal('{{ .id }}')"><i data-lucide="edit" class="me-2" style="width: 16px; height: 16px;"></i> {{ t "edit_product" .Lang }}</a></li>
-                                            <li><a class="dropdown-item py-2" href="/print-label?id={{ .id }}" target="_blank"><i data-lucide="printer" class="me-2" style="width: 16px; height: 16px;"></i> {{ t "print_label" .Lang }}</a></li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li><a class="dropdown-item py-2 text-danger" href="javascript:void(0)" hx-delete="/api/products/delete?id={{ .id }}" hx-confirm="{{ t `confirm_delete_product` .Lang }}"><i data-lucide="trash-2" class="me-2" style="width: 16px; height: 16px;"></i> {{ t "delete" .Lang }}</a></li>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 mt-1 py-2 position-absolute" style="z-index: 1050; min-width: 180px;">
+                                            <li><a class="dropdown-item py-2 px-3 fw-medium d-flex align-items-center gap-2" href="javascript:void(0)" onclick="openDetailsModal('{{ .id }}')"><i data-lucide="eye" style="width: 16px; height: 16px;"></i> {{ t "details" $.Lang }}</a></li>
+                                            <li><a class="dropdown-item py-2 px-3 fw-medium d-flex align-items-center gap-2" href="javascript:void(0)" onclick="openAddStockModal('{{ .id }}', '{{ .name }}')"><i data-lucide="package-plus" style="width: 16px; height: 16px;"></i> {{ t "add_stock_batch" $.Lang }}</a></li>
+                                            <li><a class="dropdown-item py-2 px-3 fw-medium d-flex align-items-center gap-2" href="javascript:void(0)" onclick="openEditModal('{{ .id }}')"><i data-lucide="edit" style="width: 16px; height: 16px;"></i> {{ t "edit_product" $.Lang }}</a></li>
+                                            <li><hr class="dropdown-divider my-1"></li>
+                                            <li><a class="dropdown-item py-2 px-3 fw-medium text-danger d-flex align-items-center gap-2" href="javascript:void(0)" hx-delete="/api/products/delete?id={{ .id }}" hx-confirm="{{ t `confirm_delete_product` $.Lang }}"><i data-lucide="trash-2" style="width: 16px; height: 16px;"></i> {{ t "delete" $.Lang }}</a></li>
                                         </ul>
                                     </div>
                                 </td>
@@ -147,9 +163,16 @@
 </main>
 
 <!-- Product Form Modal -->
-<div class="modal fade" id="productFormModal" tabindex="-1" aria-labelledby="productFormModalLabel" aria-hidden="true">
+<div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <!-- Loading Overlay -->
+            <div id="productModalLoading" class="modal-loading-overlay">
+                <div class="text-center">
+                    <div class="spinner-border text-primary mb-2" role="status"></div>
+                    <div class="small fw-bold text-muted">{{ t "js_saving" .Lang }}...</div>
+                </div>
+            </div>
             <div class="modal-header border-0 bg-light p-4">
                 <h5 class="modal-title fw-bold text-dark d-flex align-items-center gap-2" id="productFormModalLabel">
                     <i data-lucide="plus-circle" id="modalIcon" class="text-primary" style="width: 24px; height: 24px;"></i>
@@ -158,7 +181,9 @@
                 <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
-                <form id="productForm" hx-post="/api/products/create" hx-swap="none">
+                <form id="productForm" hx-post="/api/products/create" hx-swap="none"
+                    hx-on::before-request="document.getElementById('productSubmitBtn').disabled = true; document.getElementById('productSubmitBtnText').innerText = '{{ t `js_saving` .Lang }}';"
+                    hx-on::after-request="document.getElementById('productSubmitBtn').disabled = false; document.getElementById('productSubmitBtnText').innerText = '{{ t `save_changes` .Lang }}'; if (event.detail.successful) { bootstrap.Modal.getInstance(document.getElementById('productModal')).hide(); }">
                     <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
                     <input type="hidden" name="id" id="productId" value="">
                     
@@ -175,18 +200,9 @@
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label small fw-bold text-muted">{{ t "sku_exact_code" .Lang }}</label>
-                                    <input type="text" name="sku_code" id="skuCode" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" placeholder="{{ t `unique_product_code` .Lang }}" required>
+                                    <input type="text" name="sku_code" id="skuCode" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" placeholder="{{ t `unique_product_code` .Lang }}">
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-muted">{{ t "legal_category_mandatory" .Lang }}</label>
-                                    <div class="d-flex gap-2">
-                                        <input type="radio" class="btn-check" name="legal_category" id="legalOTC" value="OTC" checked required>
-                                        <label class="btn btn-outline-success border-2 rounded-3 py-2 px-4 shadow-none fw-bold w-50" for="legalOTC">{{ t "otc_label" .Lang }}</label>
-
-                                        <input type="radio" class="btn-check" name="legal_category" id="legalRx" value="Rx" required>
-                                        <label class="btn btn-outline-danger border-2 rounded-3 py-2 px-4 shadow-none fw-bold w-50" for="legalRx">{{ t "rx_label" .Lang }}</label>
-                                    </div>
-                                </div>
+                                <!-- Legal category removed -->
                                 <div class="col-md-6">
                                     <label class="form-label small fw-bold text-muted">{{ t "therapeutic_class" .Lang }}</label>
                                     <div class="dropdown" id="therapeuticDropdown">
@@ -204,11 +220,20 @@
                                             <li><a class="dropdown-item py-2" href="javascript:void(0)" onclick="selectTherapeuticClass('{{ t `bronchodilators` .Lang }}')">{{ t "bronchodilators" .Lang }}</a></li>
                                         </ul>
                                     </div>
-                                    <input type="hidden" name="category" value="{{ t `medicine` .Lang }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-muted">{{ t "category" .Lang }}</label>
+                                    <select name="category" id="productCategory" class="form-select rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" required>
+                                        <option value="Medicine - OTC">{{ t "cat_med_otc" .Lang }}</option>
+                                        <option value="Medicine - Prescription">{{ t "cat_med_rx" .Lang }}</option>
+                                        <option value="Supplements">{{ t "cat_supplements" .Lang }}</option>
+                                        <option value="Medical Supplies">{{ t "cat_medical_supplies" .Lang }}</option>
+                                        <option value="Maternal & Baby">{{ t "cat_maternal_baby" .Lang }}</option>
+                                    </select>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label small fw-bold text-muted">{{ t "storage_location_rak" .Lang }}</label>
-                                    <input type="text" name="storage_location" id="storageLocation" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" placeholder="{{ t `storage_example` .Lang }}" required>
+                                    <input type="text" name="storage_location" id="storageLocation" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" placeholder="{{ t `storage_example` .Lang }}">
                                 </div>
                             </div>
                         </div>
@@ -220,18 +245,20 @@
                                 <i data-lucide="tag" style="width: 14px; height: 14px;"></i> {{ t "pricing" .Lang }}
                             </h6>
                             <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-muted">{{ t "purchase_price" .Lang }}</label>
+                                <div class="col-md-6 {{ if ne .CurrentUser.Role "admin" }}d-none{{ end }}">
+                                    <label class="form-label small fw-bold text-muted" id="labelPurchasePrice">{{ t "purchase_price" .Lang }} <span class="unit-suffix">(per Pcs)</span></label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-light border-light-subtle rounded-start-3 small fw-bold">Rp</span>
-                                        <input type="number" name="purchase_price" id="purchasePrice" class="form-control rounded-end-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" value="0" required min="0" step="1">
+                                        <input type="text" id="purchasePriceDisplay" class="form-control rounded-end-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" placeholder="0" {{ if eq .CurrentUser.Role "admin" }}required{{ end }}>
+                                        <input type="hidden" name="purchase_price" id="purchasePrice" value="">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-muted">{{ t "selling_price" .Lang }}</label>
+                                    <label class="form-label small fw-bold text-muted" id="labelSellingPrice">{{ t "selling_price" .Lang }} <span class="unit-suffix">(per Pcs)</span></label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-light border-light-subtle rounded-start-3 small fw-bold">Rp</span>
-                                        <input type="number" name="selling_price" id="sellingPrice" class="form-control rounded-end-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" value="0" required min="0" step="1">
+                                        <input type="text" id="sellingPriceDisplay" class="form-control rounded-end-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" placeholder="0" required>
+                                        <input type="hidden" name="selling_price" id="sellingPrice" value="">
                                     </div>
                                 </div>
                             </div>
@@ -244,32 +271,35 @@
                                 <i data-lucide="package" style="width: 14px; height: 14px;"></i> {{ t "stock_unit_management" .Lang }}
                             </h6>
                             <div class="row g-3">
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label class="form-label small fw-bold text-muted">{{ t "main_unit" .Lang }}</label>
                                     <select name="unit" id="unit" class="form-select rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" required onchange="toggleItemsPerUnit()">
                                         <option value="">{{ t "select_unit" .Lang }}</option>
                                         <option value="Box">{{ t "unit_box" .Lang }}</option>
                                         <option value="Strip">{{ t "unit_strip" .Lang }}</option>
-                                        <option value="Dus">{{ t "unit_dus" .Lang }}</option>
-                                        <option value="Botol">{{ t "unit_botol" .Lang }}</option>
-                                        <option value="Vial">{{ t "unit_vial" .Lang }}</option>
-                                        <option value="Ampul">{{ t "unit_ampul" .Lang }}</option>
-                                        <option value="Tube">{{ t "unit_tube" .Lang }}</option>
-                                        <option value="Sachet">{{ t "unit_sachet" .Lang }}</option>
-                                        <option value="Pot">{{ t "unit_pot" .Lang }}</option>
                                         <option value="Pcs">{{ t "unit_pcs_smallest" .Lang }}</option>
                                     </select>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
+                                    <div id="subUnitWrapper" style="display: none;">
+                                        <label class="form-label small fw-bold text-muted">{{ t "sub_unit" .Lang }}</label>
+                                        <select name="sub_unit" id="subUnit" class="form-select rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" onchange="updateTotalLabel(); updateUnitLabels();">
+                                            <option value="">{{ t "select_sub_unit" .Lang }}</option>
+                                            <option value="Strip">{{ t "unit_strip" .Lang }}</option>
+                                            <option value="Pcs">{{ t "unit_pcs_smallest" .Lang }}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
                                     <div id="itemsPerUnitWrapper" style="display: none;">
                                         <label class="form-label small fw-bold text-muted">{{ t "items_per_unit_isi" .Lang }}</label>
-                                        <input type="number" name="items_per_unit" id="itemsPerUnit" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" value="1" min="1" oninput="updateTotalLabel()">
+                                        <input type="number" name="items_per_unit" id="itemsPerUnit" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" placeholder="1" min="1" oninput="updateTotalLabel()">
                                         <small class="text-muted" style="font-size: 0.7rem;">{{ t "items_per_unit_help" .Lang }}</small>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label small fw-bold text-muted">{{ t "min_stock_alert_pcs" .Lang }}</label>
-                                    <input type="number" name="min_stock" id="minStock" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" value="10" required min="0">
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold text-muted" id="labelMinStock">{{ t "min_stock_alert_pcs" .Lang }} <span class="unit-suffix">(Pcs)</span></label>
+                                    <input type="number" name="min_stock" id="minStock" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" placeholder="10" required min="0">
                                 </div>
                             </div>
                         </div>
@@ -283,15 +313,15 @@
                                 <div class="row g-3 align-items-end">
                                     <div class="col-md-4">
                                         <label class="form-label small fw-bold text-muted">{{ t "initial_quantity_units" .Lang }}</label>
-                                        <input type="number" name="initial_stock" id="initialStock" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-white" value="0" min="0">
+                                        <input type="number" name="initial_stock" id="initialStock" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-white" placeholder="0" min="0" required>
                                     </div>
                                     <div class="col-md-4">
                                         <label class="form-label small fw-bold text-muted">{{ t "batch_no" .Lang }}</label>
-                                        <input type="text" name="batch_number" id="batchNumber" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-white" placeholder="{{ t `batch_no` .Lang }}">
+                                        <input type="text" name="batch_number" id="batchNumber" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-white" placeholder="{{ t `batch_no` .Lang }}" required>
                                     </div>
                                     <div class="col-md-4">
                                         <label class="form-label small fw-bold text-muted">{{ t "expiry_date" .Lang }}</label>
-                                        <input type="date" name="expiry_date" id="expiryDate" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-white">
+                                        <input type="date" name="expiry_date" id="expiryDate" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-white" required>
                                     </div>
                                     <div class="col-12 mt-3 d-flex justify-content-between align-items-center">
                                         <div class="text-muted small">
@@ -299,7 +329,7 @@
                                             <span class="fst-italic">{{ t "initial_batch_help" .Lang }}</span>
                                         </div>
                                         <div class="bg-primary bg-opacity-10 text-primary px-3 py-1 rounded-pill fw-bold small">
-                                            {{ t "total_stock" .Lang }}: <span id="totalAddedLabel">0 {{ t "pcs_suffix" .Lang }}</span>
+                                            {{ t "total_stock" .Lang }}: <span id="totalAddedLabel">0</span>
                                         </div>
                                     </div>
                                 </div>
@@ -309,11 +339,205 @@
 
                     <div class="modal-footer border-0 p-0 mt-4 pt-4 d-flex justify-content-end gap-2">
                         <button type="button" class="btn btn-light px-4 py-2 rounded-3 fw-bold border-0" data-bs-dismiss="modal">{{ t "cancel" .Lang }}</button>
-                        <button type="submit" class="btn btn-primary px-5 py-2 rounded-3 fw-bold shadow-sm" style="background-color: var(--pos-primary, #f97316); border-color: var(--pos-primary, #f97316);">
-                            {{ t "save_changes" .Lang }}
+                        <button type="submit" id="productSubmitBtn" class="btn btn-primary px-5 py-2 rounded-3 fw-bold shadow-sm" style="background-color: var(--pos-primary, #f97316); border-color: var(--pos-primary, #f97316);">
+                            <span id="productSubmitBtnText">{{ t "save_changes" .Lang }}</span>
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Stock Modal -->
+<div class="modal fade" id="addStockModal" tabindex="-1" aria-labelledby="addStockModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header border-0 bg-light p-4">
+                <h5 class="modal-title fw-bold text-dark d-flex align-items-center gap-2" id="addStockModalLabel">
+                    <i data-lucide="package-plus" class="text-primary" style="width: 24px; height: 24px;"></i>
+                    <span>{{ t "add_stock_batch" .Lang }}</span>
+                </h5>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-info border-0 rounded-3 mb-4 d-flex align-items-center gap-2">
+                    <i data-lucide="info" style="width: 18px; height: 18px;"></i>
+                    <span class="small fw-medium">{{ t "adding_stock_for" .Lang }}: <strong id="stockProductName" class="text-dark"></strong></span>
+                </div>
+                <!-- Need to add a new route: /api/products/batch/create or similar to handle this form submission -->
+                <form id="addStockForm" onsubmit="submitAddStock(event)">
+                    <input type="hidden" name="csrf_token" id="stockCsrf" value="{{ .CSRFToken }}">
+                    <input type="hidden" name="product_id" id="stockProductId" value="">
+                    
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-muted">{{ t "quantity_incoming" .Lang }} <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="number" id="stockQuantity" name="quantity" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" placeholder="0" min="1" required>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-muted">{{ t "batch_no" .Lang }} <span class="text-danger">*</span></label>
+                            <input type="text" id="stockBatchNumber" name="batch_number" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" placeholder="{{ t `batch_no` .Lang }}" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-muted">{{ t "expiry_date" .Lang }} <span class="text-danger">*</span></label>
+                            <input type="date" id="stockExpiryDate" name="expiry_date" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" required>
+                        </div>
+                        
+                        <!-- Additional fields needed for JSON payload -->
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">{{ t "purchase_price" .Lang }} <small>(per Unit)</small></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-light-subtle rounded-start-3 small fw-bold">Rp</span>
+                                <input type="number" id="stockPurchasePrice" name="purchase_price" class="form-control rounded-end-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" value="0" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">{{ t "selling_price" .Lang }} <small>(per Unit)</small></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-light-subtle rounded-start-3 small fw-bold">Rp</span>
+                                <input type="number" id="stockSellingPrice" name="selling_price" class="form-control rounded-end-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" value="0" required>
+                            </div>
+                        </div>
+
+                        <div class="col-12 mt-4">
+                            <div class="bg-warning bg-opacity-10 rounded-3 p-3">
+                                <div class="form-check">
+                                    <input class="form-check-input shadow-none" type="checkbox" id="confirmAddStock" required>
+                                    <label class="form-check-label small text-dark" for="confirmAddStock">
+                                        {{ t "confirm_add_stock_msg" .Lang }}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer border-0 p-0 mt-4 pt-4 d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-light px-4 py-2 rounded-3 fw-bold border-0" data-bs-dismiss="modal">{{ t "cancel" .Lang }}</button>
+                        <button type="submit" id="saveStockBtn" class="btn btn-primary px-5 py-2 rounded-3 fw-bold shadow-sm" style="background-color: var(--pos-primary, #f97316); border-color: var(--pos-primary, #f97316);">
+                            <span id="saveStockBtnText">{{ t "save_changes" .Lang }}</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Product Details Modal -->
+<div class="modal fade" id="productDetailsModal" tabindex="-1" aria-labelledby="productDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header border-0 bg-light p-4">
+                <h5 class="modal-title fw-bold text-dark d-flex align-items-center gap-2" id="productDetailsModalLabel">
+                    <i data-lucide="package" class="text-primary" style="width: 24px; height: 24px;"></i>
+                    <span>{{ t "product_info" .Lang }}</span>
+                </h5>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Loading Spinner -->
+                <div id="detailsLoading" class="text-center py-5 d-none">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <!-- Details Content -->
+                <div id="detailsContent" class="row g-4 d-none">
+                    <!-- Basic Info -->
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded-4 h-100">
+                            <h6 class="fw-bold mb-3 d-flex align-items-center gap-2 text-muted">
+                                <i data-lucide="info" style="width:16px; height:16px;"></i> {{ t "basic_information" .Lang }}
+                            </h6>
+                            <table class="table table-borderless table-sm small mb-0">
+                                <tbody>
+                                    <tr>
+                                        <td class="text-muted w-50">Name</td>
+                                        <td class="fw-bold text-dark" id="detailName"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">SKU</td>
+                                        <td class="fw-bold text-dark" id="detailSku"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">{{ t "category" .Lang }}</td>
+                                        <td class="fw-bold text-dark" id="detailCategory"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">{{ t "therapeutic_class" .Lang }}</td>
+                                        <td class="fw-bold text-dark" id="detailTherapeuticClass"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">{{ t "storage_location" .Lang }}</td>
+                                        <td class="fw-bold text-dark" id="detailStorageLocation"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Pricing & Stock -->
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded-4 h-100">
+                            <h6 class="fw-bold mb-3 d-flex align-items-center gap-2 text-muted">
+                                <i data-lucide="tag" style="width:16px; height:16px;"></i> Pricing & Units
+                            </h6>
+                            <table class="table table-borderless table-sm small mb-0">
+                                <tbody>
+                                    <tr>
+                                        <td class="text-muted w-50">{{ t "purchase_price" .Lang }}</td>
+                                        <td class="fw-bold text-success" id="detailPurchasePrice"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">{{ t "selling_price" .Lang }}</td>
+                                        <td class="fw-bold text-primary" id="detailSellingPrice"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">Main Unit</td>
+                                        <td class="fw-bold text-dark" id="detailUnit"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">Items per Unit</td>
+                                        <td class="fw-bold text-dark" id="detailItemsPerUnit"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">Total Stock</td>
+                                        <td class="fw-bold text-dark" id="detailTotalStock"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Batches Table -->
+                    <div class="col-12 mt-4">
+                        <h6 class="fw-bold mb-3 d-flex align-items-center gap-2 text-muted">
+                            <i data-lucide="layers" style="width:16px; height:16px;"></i> {{ t "batch_inventory" .Lang }}
+                        </h6>
+                        <div class="table-responsive bg-white rounded-3 shadow-sm border">
+                            <table class="table table-hover table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3 py-2 small fw-bold text-muted">{{ t "batch_no" .Lang }}</th>
+                                        <th class="py-2 small fw-bold text-muted">{{ t "expiry_date" .Lang }}</th>
+                                        <th class="py-2 small fw-bold text-muted">Initial Qty</th>
+                                        <th class="py-2 small fw-bold text-muted">Current Stock</th>
+                                        <th class="py-2 small fw-bold text-muted">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="detailBatchesBody">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-4 bg-light">
+                <button type="button" class="btn btn-secondary px-4 py-2 rounded-3 fw-bold" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -324,7 +548,7 @@
 
 <script>
     function getProductModal() {
-        const el = document.getElementById('productFormModal');
+        const el = document.getElementById('productModal');
         if (!el) return null;
         let modal = bootstrap.Modal.getInstance(el);
         if (!modal) {
@@ -341,21 +565,28 @@
         document.getElementById('productId').value = '';
         document.getElementById('productName').value = '';
         document.getElementById('skuCode').value = '';
-        document.getElementById('legalOTC').checked = true;
-        document.getElementById('therapeuticClass').value = '';
+        document.getElementById('productCategory').value = 'Medicine - OTC';
+        document.getElementById('purchasePriceDisplay').value = '';
+        document.getElementById('sellingPriceDisplay').value = '';
+        document.getElementById('purchasePrice').value = '';
+        document.getElementById('sellingPrice').value = '';
         document.getElementById('unit').value = '';
-        document.getElementById('storageLocation').value = '';
-        document.getElementById('minStock').value = '10';
-        document.getElementById('initialStock').value = '0';
+        if (document.getElementById('subUnit')) {
+            document.getElementById('subUnit').value = '';
+        }
+        document.getElementById('itemsPerUnit').value = '';
+        document.getElementById('minStock').value = '';
+        document.getElementById('initialStock').value = '';
         document.getElementById('batchNumber').value = '';
         document.getElementById('expiryDate').value = '';
-        document.getElementById('purchasePrice').value = '0';
-        document.getElementById('sellingPrice').value = '0';
-        document.getElementById('totalAddedLabel').innerText = '0 pcs';
+        document.getElementById('totalAddedLabel').innerText = '0 Pcs';
 
         toggleItemsPerUnit();
 
         document.getElementById('batchSectionWrapper').style.display = 'block';
+        document.getElementById('initialStock').required = true;
+        document.getElementById('batchNumber').required = true;
+        document.getElementById('expiryDate').required = true;
         document.getElementById('modalTitleText').innerText = '{{ t "add_new_product" .Lang }}';
         document.getElementById('modalIcon').setAttribute('data-lucide', 'plus-circle');
         form.setAttribute('hx-post', '/api/products/create');
@@ -373,11 +604,148 @@
         }
     }
 
+    function openAddStockModal(id, name) {
+        const modalEl = document.getElementById('addStockModal');
+        if (!modalEl) return;
+        
+        // Reset form
+        const form = document.getElementById('addStockForm');
+        if (form) form.reset();
+        
+        // Set values
+        document.getElementById('stockProductId').value = id;
+        document.getElementById('stockProductName').innerText = name;
+        document.getElementById('confirmAddStock').checked = false;
+        
+        let modal = bootstrap.Modal.getInstance(modalEl);
+        if (!modal) {
+            modal = new bootstrap.Modal(modalEl);
+        }
+        modal.show();
+    }
+
+    function submitAddStock(e) {
+        e.preventDefault();
+        
+        const btn = document.getElementById('saveStockBtn');
+        const btnText = document.getElementById('saveStockBtnText');
+        const csrfToken = document.getElementById('stockCsrf').value;
+        btn.disabled = true;
+        btnText.innerText = '{{ t `js_saving` .Lang }}';
+        
+        const payload = {
+            product_id: parseInt(document.getElementById('stockProductId').value),
+            batch_number: document.getElementById('stockBatchNumber').value,
+            expiry_date: document.getElementById('stockExpiryDate').value,
+            package_count: parseFloat(document.getElementById('stockQuantity').value),
+            items_per_unit: 1, // Assuming 1 for simplicity if not handled on form, or can be fetched from product details in a more complex setup
+            purchase_price: parseFloat(document.getElementById('stockPurchasePrice').value) || 0,
+            selling_price: parseFloat(document.getElementById('stockSellingPrice').value) || 0
+        };
+
+        fetch('/api/batch/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                if (window.showToast) window.showToast(data.message || 'Stock added successfully', 'success');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addStockModal'));
+                if (modal) modal.hide();
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                throw new Error(data.error || 'Failed to add stock');
+            }
+        })
+        .catch(err => {
+            console.error('Error adding stock:', err);
+            if (window.showToast) window.showToast(err.message, 'error');
+            btn.disabled = false;
+            btnText.innerText = '{{ t `save_changes` .Lang }}';
+        });
+    }
+
+    function openDetailsModal(id) {
+        const modalEl = document.getElementById('productDetailsModal');
+        if (!modalEl) return;
+        
+        const loading = document.getElementById('detailsLoading');
+        const content = document.getElementById('detailsContent');
+        
+        loading.classList.remove('d-none');
+        content.classList.add('d-none');
+        
+        let modal = bootstrap.Modal.getInstance(modalEl);
+        if (!modal) modal = new bootstrap.Modal(modalEl);
+        modal.show();
+        
+        fetch(`/api/products/details?id=${id}`)
+            .then(response => response.json())
+            .then(res => {
+                if (res.status === 'success') {
+                    const p = res.data.product;
+                    const batches = res.data.batches || [];
+                    
+                    document.getElementById('detailName').innerText = p.name;
+                    document.getElementById('detailSku').innerText = p.sku_code || '-';
+                    document.getElementById('detailCategory').innerText = p.category;
+                    document.getElementById('detailTherapeuticClass').innerText = p.therapeutic_class || '-';
+                    document.getElementById('detailStorageLocation').innerText = p.storage_location || '-';
+                    
+                    document.getElementById('detailPurchasePrice').innerText = `Rp ${p.purchase_price}`;
+                    document.getElementById('detailSellingPrice').innerText = `Rp ${p.selling_price}`;
+                    document.getElementById('detailUnit').innerText = p.unit;
+                    document.getElementById('detailItemsPerUnit').innerText = `${p.items_per_unit} ${p.sub_unit || 'Pcs'}/${p.unit}`;
+                    document.getElementById('detailTotalStock').innerText = `${p.total_stock} Pcs`;
+                    
+                    const tbody = document.getElementById('detailBatchesBody');
+                    tbody.innerHTML = '';
+                    if (batches.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-3 small">No batches found</td></tr>`;
+                    } else {
+                        batches.forEach(b => {
+                            const statusBadge = b.is_verified 
+                                ? `<span class="badge bg-success bg-opacity-10 text-success border-0">Verified</span>`
+                                : `<span class="badge bg-warning bg-opacity-10 text-warning border-0">Pending</span>`;
+                            const row = `
+                                <tr>
+                                    <td class="ps-3 py-2 small fw-medium">${b.batch_number}</td>
+                                    <td class="py-2 small fw-medium">${b.expiry_date}</td>
+                                    <td class="py-2 small fw-medium">${b.initial_qty} ${p.unit}</td>
+                                    <td class="py-2 small fw-medium">${b.current_stock} Pcs</td>
+                                    <td class="py-2 small">${statusBadge}</td>
+                                </tr>
+                            `;
+                            tbody.insertAdjacentHTML('beforeend', row);
+                        });
+                    }
+                    
+                    loading.classList.add('d-none');
+                    content.classList.remove('d-none');
+                } else {
+                    throw new Error(res.error || 'Failed to load details');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                if (window.showToast) window.showToast('Failed to load product details.', 'error');
+                modal.hide();
+            });
+    }
+
     function openEditModal(id) {
         const form = document.getElementById('productForm');
         if (!form) return;
 
         document.getElementById('batchSectionWrapper').style.display = 'none';
+        document.getElementById('initialStock').required = false;
+        document.getElementById('batchNumber').required = false;
+        document.getElementById('expiryDate').required = false;
         document.getElementById('modalTitleText').innerText = '{{ t "edit_product" .Lang }}';
         document.getElementById('modalIcon').setAttribute('data-lucide', 'edit');
         form.setAttribute('hx-post', '/api/products/update');
@@ -394,20 +762,24 @@
                     document.getElementById('productId').value = p.id || '';
                     document.getElementById('productName').value = p.name || '';
                     document.getElementById('skuCode').value = p.sku_code || '';
-                    if (p.legal_category === 'Rx') {
-                        document.getElementById('legalRx').checked = true;
-                    } else {
-                        document.getElementById('legalOTC').checked = true;
-                    }
-                    document.getElementById('therapeuticClass').value = p.therapeutic_class || '';
-                    document.getElementById('unit').value = p.unit || '';
-                    document.getElementById('itemsPerUnit').value = p.items_per_unit || '1';
-                    document.getElementById('storageLocation').value = p.storage_location || '';
-                    document.getElementById('minStock').value = p.min_stock || '0';
+                    document.getElementById('productCategory').value = p.category || 'Medicine - OTC';
                     document.getElementById('purchasePrice').value = p.purchase_price || '0';
                     document.getElementById('sellingPrice').value = p.selling_price || '0';
+                    document.getElementById('unit').value = p.unit || '';
                     
                     toggleItemsPerUnit();
+                    
+                    if (document.getElementById('subUnit')) {
+                        document.getElementById('subUnit').value = p.sub_unit || '';
+                    }
+                    document.getElementById('itemsPerUnit').value = p.items_per_unit || '1';
+                    document.getElementById('minStock').value = p.min_stock || '0';
+                   if(document.getElementById('purchasePriceDisplay')) {
+                        document.getElementById('purchasePriceDisplay').value = formatRupiahInput((p.purchase_price || 0).toString());
+                    }
+                    if(document.getElementById('sellingPriceDisplay')) {
+                        document.getElementById('sellingPriceDisplay').value = formatRupiahInput((p.selling_price || 0).toString());
+                    }
                 }
                 
                 const modal = getProductModal();
@@ -426,26 +798,118 @@
 
     function toggleItemsPerUnit() {
         const unit = document.getElementById('unit').value;
-        const wrapper = document.getElementById('itemsPerUnitWrapper');
-        const input = document.getElementById('itemsPerUnit');
+        const subUnitWrapper = document.getElementById('subUnitWrapper');
+        const subUnit = document.getElementById('subUnit');
+        const itemsWrapper = document.getElementById('itemsPerUnitWrapper');
+        const itemsInput = document.getElementById('itemsPerUnit');
         
-        if (unit && unit !== 'Pcs') {
-            wrapper.style.display = 'block';
+        if (unit === 'Box') {
+            if (subUnitWrapper) subUnitWrapper.style.display = 'block';
+            if (subUnit) {
+                subUnit.innerHTML = `
+                    <option value="">{{ t "select_sub_unit" .Lang }}</option>
+                    <option value="Strip">{{ t "unit_strip" .Lang }}</option>
+                    <option value="Pcs">{{ t "unit_pcs_smallest" .Lang }}</option>
+                `;
+                subUnit.required = true;
+            }
+            if (itemsWrapper) itemsWrapper.style.display = 'block';
+            if (itemsInput) itemsInput.required = true;
+        } else if (unit === 'Strip') {
+            if (subUnitWrapper) subUnitWrapper.style.display = 'block';
+            if (subUnit) {
+                subUnit.innerHTML = `<option value="Pcs" selected>{{ t "unit_pcs_smallest" .Lang }}</option>`;
+                subUnit.required = true;
+            }
+            if (itemsWrapper) itemsWrapper.style.display = 'block';
+            if (itemsInput) itemsInput.required = true;
         } else {
-            wrapper.style.display = 'none';
-            input.value = '1';
+            if (subUnitWrapper) subUnitWrapper.style.display = 'none';
+            if (subUnit) {
+                subUnit.value = '';
+                subUnit.required = false;
+            }
+            if (itemsWrapper) itemsWrapper.style.display = 'none';
+            if (itemsInput) {
+                itemsInput.value = '';
+                itemsInput.required = false;
+            }
         }
+        updateUnitLabels();
         updateTotalLabel();
+    }
+
+    function updateUnitLabels() {
+        const subUnitEl = document.getElementById('subUnit');
+        const unitEl = document.getElementById('unit');
+        const subUnit = (subUnitEl && subUnitEl.value) ? subUnitEl.value : '';
+        const unit = (unitEl && unitEl.value) ? unitEl.value : '';
+        const effectiveUnit = subUnit || unit || 'Pcs';
+        
+        document.querySelectorAll('.unit-suffix').forEach(el => {
+            if (el.parentElement.id === 'labelMinStock') {
+                el.innerText = `(${effectiveUnit})`;
+            } else {
+                el.innerText = `(per ${effectiveUnit})`;
+            }
+        });
     }
 
     function updateTotalLabel() {
         const initialStock = parseFloat(document.getElementById('initialStock').value) || 0;
         const itemsPerUnit = parseInt(document.getElementById('itemsPerUnit').value) || 1;
+        const subUnitEl = document.getElementById('subUnit');
+        const unitEl = document.getElementById('unit');
+        
+        const subUnit = (subUnitEl && subUnitEl.value) ? subUnitEl.value : 'Pcs';
+        const unit = (unitEl && unitEl.value) ? unitEl.value : 'Pcs';
+        
         const label = document.getElementById('totalAddedLabel');
         if (label) {
-            label.innerText = (initialStock * itemsPerUnit) + ' {{ t "pcs_suffix" .Lang }}';
+            if (unit === 'Box' || unit === 'Strip') {
+                label.innerText = (initialStock * itemsPerUnit) + ' ' + subUnit;
+            } else {
+                label.innerText = initialStock + ' ' + unit;
+            }
         }
     }
+
+    function formatRupiahInput(angka) {
+        let number_string = angka.replace(/[^,\d]/g, '').toString(),
+            split = number_string.split(','),
+            sisa = split[0].length % 3,
+            rupiah = split[0].substr(0, sisa),
+            ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+
+        if (ribuan) {
+            let separator = sisa ? '.' : '';
+            rupiah += separator + ribuan.join('.');
+        }
+
+        rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
+        return rupiah;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const purchaseDisplay = document.getElementById('purchasePriceDisplay');
+        const sellingDisplay = document.getElementById('sellingPriceDisplay');
+        const purchaseActual = document.getElementById('purchasePrice');
+        const sellingActual = document.getElementById('sellingPrice');
+
+        if(purchaseDisplay) {
+            purchaseDisplay.addEventListener('input', function(e) {
+                this.value = formatRupiahInput(this.value);
+                purchaseActual.value = this.value.replace(/\./g, '');
+            });
+        }
+
+        if(sellingDisplay) {
+            sellingDisplay.addEventListener('input', function(e) {
+                this.value = formatRupiahInput(this.value);
+                sellingActual.value = this.value.replace(/\./g, '');
+            });
+        }
+    });
 
     // Update total added pill
     const initialStockInput = document.getElementById('initialStock');
@@ -455,6 +919,8 @@
 
     // Handle HTMX response for modal closing
     document.body.addEventListener('htmx:beforeOnLoad', function(evt) {
+        // This is now handled by hx-on::after-request on the form itself
+        // but keeping this for any other responses that might need it
         if (evt.detail.xhr.getResponseHeader('HX-Location') || evt.detail.xhr.getResponseHeader('HX-Refresh')) {
             const modal = getProductModal();
             if (modal) modal.hide();

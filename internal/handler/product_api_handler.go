@@ -5,6 +5,7 @@ import (
 	"inventory-system/internal/domain"
 	"inventory-system/internal/middleware"
 	"inventory-system/internal/service"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -66,7 +67,7 @@ func (h *ProductApiHandler) Store(w http.ResponseWriter, r *http.Request) {
 	userID := session.UserID
 	role := session.Role
 
-	var name, sku, category, legalCategory, therapeuticClass, unit, storage, batch, expiry string
+	var name, sku, category, therapeuticClass, unit, subUnit, storage, batch, expiry string
 	var itemsPerUnit, minStock int
 	var purchasePrice, sellingPrice, initialStock float64
 
@@ -75,9 +76,9 @@ func (h *ProductApiHandler) Store(w http.ResponseWriter, r *http.Request) {
 			Name             string  `json:"name"`
 			SKUCode          string  `json:"sku_code"`
 			Category         string  `json:"category"`
-			LegalCategory    string  `json:"legal_category"`
 			TherapeuticClass string  `json:"therapeutic_class"`
 			Unit             string  `json:"unit"`
+			SubUnit          string  `json:"sub_unit"`
 			ItemsPerUnit     int     `json:"items_per_unit"`
 			StorageLocation  string  `json:"storage_location"`
 			PurchasePrice    float64 `json:"purchase_price"`
@@ -94,9 +95,9 @@ func (h *ProductApiHandler) Store(w http.ResponseWriter, r *http.Request) {
 		name = data.Name
 		sku = data.SKUCode
 		category = data.Category
-		legalCategory = data.LegalCategory
 		therapeuticClass = data.TherapeuticClass
 		unit = data.Unit
+		subUnit = data.SubUnit
 		itemsPerUnit = data.ItemsPerUnit
 		storage = data.StorageLocation
 		purchasePrice = data.PurchasePrice
@@ -109,9 +110,9 @@ func (h *ProductApiHandler) Store(w http.ResponseWriter, r *http.Request) {
 		name = r.FormValue("name")
 		sku = r.FormValue("sku_code")
 		category = r.FormValue("category")
-		legalCategory = r.FormValue("legal_category")
 		therapeuticClass = r.FormValue("therapeutic_class")
 		unit = r.FormValue("unit")
+		subUnit = r.FormValue("sub_unit")
 		itemsPerUnit, _ = strconv.Atoi(r.FormValue("items_per_unit"))
 		storage = r.FormValue("storage_location")
 		purchasePrice, _ = strconv.ParseFloat(r.FormValue("purchase_price"), 64)
@@ -127,7 +128,22 @@ func (h *ProductApiHandler) Store(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !domain.IsValidUnit(unit) {
+		if r.Header.Get("HX-Request") == "true" {
+			w.Header().Set("HX-Trigger", `{"toast": {"type": "error", "message": "Invalid unit. Must be one of: `+strings.Join(domain.ValidUnits, ", ")+`"}}`)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		h.RespondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid unit. Must be one of: " + strings.Join(domain.ValidUnits, ", ")})
+		return
+	}
+
+	if !domain.IsValidCategory(category) {
+		if r.Header.Get("HX-Request") == "true" {
+			w.Header().Set("HX-Trigger", `{"toast": {"type": "error", "message": "Invalid category. Must be one of: `+strings.Join(domain.ValidCategories, ", ")+`"}}`)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		h.RespondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid category. Must be one of: " + strings.Join(domain.ValidCategories, ", ")})
 		return
 	}
 
@@ -135,9 +151,9 @@ func (h *ProductApiHandler) Store(w http.ResponseWriter, r *http.Request) {
 		Name:             name,
 		SKUCode:          sku,
 		Category:         category,
-		LegalCategory:    legalCategory,
 		TherapeuticClass: therapeuticClass,
 		Unit:             unit,
+		SubUnit:          subUnit,
 		ItemsPerUnit:     itemsPerUnit,
 		StorageLocation:  storage,
 		PurchasePrice:    purchasePrice,
@@ -149,8 +165,10 @@ func (h *ProductApiHandler) Store(w http.ResponseWriter, r *http.Request) {
 
 	id, err := h.productService.CreateProduct(p, batch, expiry, int(initialStock), userID)
 	if err != nil {
+		log.Printf("Error creating product: %v", err)
 		if r.Header.Get("HX-Request") == "true" {
-			w.Header().Set("HX-Trigger", `{"toast": {"type": "error", "message": "`+err.Error()+`"}}`)
+			w.Header().Set("HX-Trigger", `{"toast": {"type": "error", "message": "Failed to create product: `+err.Error()+`"}}`)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		h.RespondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -160,7 +178,7 @@ func (h *ProductApiHandler) Store(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("HX-Request") == "true" {
 		w.Header().Set("HX-Trigger", `{"toast": {"type": "success", "message": "Product created successfully"}}`)
 		// Redirect to inventory to refresh
-		w.Header().Set("HX-Location", "/inventory")
+		w.Header().Set("HX-Location", "/products")
 		return
 	}
 
@@ -181,7 +199,7 @@ func (h *ProductApiHandler) Update(w http.ResponseWriter, r *http.Request) {
 	role := session.Role
 
 	var id, itemsPerUnit, minStock int
-	var name, sku, category, legalCategory, therapeuticClass, unit, storage string
+	var name, sku, category, therapeuticClass, unit, subUnit, storage string
 	var purchasePrice, sellingPrice float64
 
 	if r.Header.Get("Content-Type") == "application/json" {
@@ -190,9 +208,9 @@ func (h *ProductApiHandler) Update(w http.ResponseWriter, r *http.Request) {
 			Name             string  `json:"name"`
 			SKUCode          string  `json:"sku_code"`
 			Category         string  `json:"category"`
-			LegalCategory    string  `json:"legal_category"`
 			TherapeuticClass string  `json:"therapeutic_class"`
 			Unit             string  `json:"unit"`
+			SubUnit          string  `json:"sub_unit"`
 			ItemsPerUnit     int     `json:"items_per_unit"`
 			StorageLocation  string  `json:"storage_location"`
 			PurchasePrice    float64 `json:"purchase_price"`
@@ -207,9 +225,9 @@ func (h *ProductApiHandler) Update(w http.ResponseWriter, r *http.Request) {
 		name = data.Name
 		sku = data.SKUCode
 		category = data.Category
-		legalCategory = data.LegalCategory
 		therapeuticClass = data.TherapeuticClass
 		unit = data.Unit
+		subUnit = data.SubUnit
 		itemsPerUnit = data.ItemsPerUnit
 		storage = data.StorageLocation
 		purchasePrice = data.PurchasePrice
@@ -232,9 +250,9 @@ func (h *ProductApiHandler) Update(w http.ResponseWriter, r *http.Request) {
 		name = r.FormValue("name")
 		sku = r.FormValue("sku_code")
 		category = r.FormValue("category")
-		legalCategory = r.FormValue("legal_category")
 		therapeuticClass = r.FormValue("therapeutic_class")
 		unit = r.FormValue("unit")
+		subUnit = r.FormValue("sub_unit")
 
 		itemsPerUnitStr := r.FormValue("items_per_unit")
 		if itemsPerUnitStr != "" {
@@ -284,6 +302,11 @@ func (h *ProductApiHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !domain.IsValidUnit(unit) {
+		if r.Header.Get("HX-Request") == "true" {
+			w.Header().Set("HX-Trigger", `{"toast": {"type": "error", "message": "Invalid unit. Must be one of: `+strings.Join(domain.ValidUnits, ", ")+`"}}`)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		h.RespondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid unit. Must be one of: " + strings.Join(domain.ValidUnits, ", ")})
 		return
 	}
@@ -292,9 +315,9 @@ func (h *ProductApiHandler) Update(w http.ResponseWriter, r *http.Request) {
 		Name:             name,
 		SKUCode:          sku,
 		Category:         category,
-		LegalCategory:    legalCategory,
 		TherapeuticClass: therapeuticClass,
 		Unit:             unit,
+		SubUnit:          subUnit,
 		ItemsPerUnit:     itemsPerUnit,
 		StorageLocation:  storage,
 		MinStock:         minStock,
@@ -303,8 +326,10 @@ func (h *ProductApiHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.productService.UpdateProduct(id, p, role); err != nil {
+		log.Printf("Error updating product %d: %v", id, err)
 		if r.Header.Get("HX-Request") == "true" {
-			w.Header().Set("HX-Trigger", `{"toast": {"type": "error", "message": "`+err.Error()+`"}}`)
+			w.Header().Set("HX-Trigger", `{"toast": {"type": "error", "message": "Failed to update product: `+err.Error()+`"}}`)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		h.RespondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -313,7 +338,7 @@ func (h *ProductApiHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	if r.Header.Get("HX-Request") == "true" {
 		w.Header().Set("HX-Trigger", `{"toast": {"type": "success", "message": "Product updated successfully"}}`)
-		w.Header().Set("HX-Location", "/inventory")
+		w.Header().Set("HX-Location", "/products")
 		return
 	}
 
@@ -321,7 +346,7 @@ func (h *ProductApiHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ProductApiHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	if r.Method != http.MethodDelete && r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -341,8 +366,10 @@ func (h *ProductApiHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.productService.DeleteProduct(id); err != nil {
+		log.Printf("Error deleting product %d: %v", id, err)
 		if r.Header.Get("HX-Request") == "true" {
-			w.Header().Set("HX-Trigger", `{"toast": {"type": "error", "message": "`+err.Error()+`"}}`)
+			w.Header().Set("HX-Trigger", `{"toast": {"type": "error", "message": "Failed to delete product: `+err.Error()+`"}}`)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		h.RespondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -351,7 +378,7 @@ func (h *ProductApiHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	if r.Header.Get("HX-Request") == "true" {
 		w.Header().Set("HX-Trigger", `{"toast": {"type": "success", "message": "Product deleted successfully"}}`)
-		w.Header().Set("HX-Location", "/inventory")
+		w.Header().Set("HX-Location", "/products")
 		return
 	}
 
@@ -379,8 +406,10 @@ func (h *ProductApiHandler) Verify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.productService.VerifyProduct(id); err != nil {
+		log.Printf("Error verifying product %d: %v", id, err)
 		if r.Header.Get("HX-Request") == "true" {
-			w.Header().Set("HX-Trigger", `{"toast": {"type": "error", "message": "`+err.Error()+`"}}`)
+			w.Header().Set("HX-Trigger", `{"toast": {"type": "error", "message": "Failed to verify product: `+err.Error()+`"}}`)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		h.RespondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -389,7 +418,7 @@ func (h *ProductApiHandler) Verify(w http.ResponseWriter, r *http.Request) {
 
 	if r.Header.Get("HX-Request") == "true" {
 		w.Header().Set("HX-Trigger", `{"toast": {"type": "success", "message": "Product verified successfully"}}`)
-		w.Header().Set("HX-Location", "/inventory")
+		w.Header().Set("HX-Location", "/products")
 		return
 	}
 

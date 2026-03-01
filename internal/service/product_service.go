@@ -62,7 +62,8 @@ func (s *productService) CreateProduct(p *domain.Product, batchNum, expiry strin
 		ProductID:     pID,
 		BatchNumber:   batchNum,
 		ExpiryDate:    expiry,
-		CurrentStock:  qty,
+		InitialQty:    qty,
+		CurrentStock:  qty * p.ItemsPerUnit,
 		PurchasePrice: p.PurchasePrice,
 		SellingPrice:  p.SellingPrice,
 		IsVerified:    p.IsVerified,
@@ -140,7 +141,20 @@ func (s *productService) QuickSearch(query string) ([]map[string]interface{}, er
 }
 
 func (s *productService) GetDetails(id int) (map[string]interface{}, error) {
-	return s.productRepo.GetDetailsWithRelations(id)
+	product, err := s.productRepo.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	batches, err := s.batchRepo.FindByProduct(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"product": product,
+		"batches": batches,
+	}, nil
 }
 
 func (s *productService) GetPendingCount() (int, error) {

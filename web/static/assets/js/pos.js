@@ -23,19 +23,20 @@ function formatRupiah(num) {
 }
 
 // Format PCS to Unit string
-function formatPcsToUnitJS(totalPcs, unitName, itemsPerUnit) {
-    if (totalPcs <= 0) return `0 ${unitName}`;
-    if (itemsPerUnit <= 1) return `${totalPcs} ${unitName}`;
+function formatPcsToUnitJS(totalPcs, unitName, subUnitName, itemsPerUnit) {
+    if (!subUnitName) subUnitName = "Pcs";
+    if (totalPcs <= 0) return `0 ${subUnitName}`;
+    if (itemsPerUnit <= 1 || unitName === subUnitName) return `${totalPcs} ${subUnitName}`;
 
     const units = Math.floor(totalPcs / itemsPerUnit);
     const remainingPcs = totalPcs % itemsPerUnit;
 
     if (units > 0 && remainingPcs > 0) {
-        return `${units} ${unitName} ${remainingPcs} PCS`;
+        return `${units} ${unitName} ${remainingPcs} ${subUnitName}`;
     } else if (units > 0) {
         return `${units} ${unitName}`;
     }
-    return `${remainingPcs} PCS`;
+    return `${remainingPcs} ${subUnitName}`;
 }
 
 // ---------------------------------------------------------
@@ -48,7 +49,8 @@ function addCardToCart(el) {
         name: el.dataset.name,
         price: parseFloat(el.dataset.price),
         sku: el.dataset.sku,
-        unit: el.dataset.unit || 'Pcs',
+        unit: el.dataset.unit || 'Box',
+        subUnit: el.dataset.subUnit || 'Pcs',
         stock: parseInt(el.dataset.stock) || 0,
         itemsPerUnit: parseInt(el.dataset.itemsPerUnit) || 1
     };
@@ -89,8 +91,9 @@ function addToCart(product) {
             price: product.price,
             sku: product.sku,
             unit: product.unit,
+            subUnit: product.subUnit,
             itemsPerUnit: product.itemsPerUnit,
-            selectedUnit: 'PCS',
+            selectedUnit: 'SUBUNIT',
             inputQty: 1,
             stock: product.stock
         });
@@ -251,8 +254,8 @@ function renderCart() {
                     </button>
                 </div>
                 <select class="unit-selector" onchange="changeUnit(${item.id}, this.value)">
-                    <option value="PCS" ${item.selectedUnit === 'PCS' ? 'selected' : ''}>PCS</option>
-                    <option value="UNIT" ${item.selectedUnit === 'UNIT' ? 'selected' : ''}>${item.unit}</option>
+                    <option value="SUBUNIT" ${item.selectedUnit === 'SUBUNIT' ? 'selected' : ''}>${item.subUnit}</option>
+                    ${item.unit && item.unit !== item.subUnit ? `<option value="UNIT" ${item.selectedUnit === 'UNIT' ? 'selected' : ''}>${item.unit}</option>` : ''}
                 </select>
                 <div class="cart-item-price">
                     <div class="unit-price" id="unit-price-${item.id}">${formatRupiah(displayPrice)}</div>
@@ -362,7 +365,8 @@ async function processCheckout() {
     const data = {
         items: cart.map(i => ({ 
             id: i.id, 
-            qty: i.selectedUnit === 'UNIT' ? (i.inputQty * i.itemsPerUnit) : i.inputQty 
+            qty: i.selectedUnit === 'UNIT' ? (i.inputQty * i.itemsPerUnit) : i.inputQty,
+            unit: i.selectedUnit === 'UNIT' ? i.unit : i.subUnit
         })),
         payment_method: paymentMethod,
         customer_name: customerName,
@@ -408,8 +412,9 @@ async function processCheckout() {
                     const stockBadge = card.querySelector('.stock-badge');
                     if (stockBadge) {
                         const unitLabel = card.dataset.unit || item.unit;
+                        const subUnitLabel = card.dataset.subUnit || item.subUnit;
                         const itemsPerUnit = parseInt(card.dataset.itemsPerUnit) || 1;
-                        stockBadge.innerText = formatPcsToUnitJS(newStock, unitLabel, itemsPerUnit);
+                        stockBadge.innerText = formatPcsToUnitJS(newStock, unitLabel, subUnitLabel, itemsPerUnit);
                         
                         stockBadge.classList.remove('critical-stock', 'low-stock', 'in-stock');
                         if (newStock <= 0) stockBadge.classList.add('critical-stock');
