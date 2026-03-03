@@ -70,7 +70,19 @@ func (h *BaseHandler) getFuncMap(tz string) template.FuncMap {
 				if v == "now" {
 					tm = time.Now()
 				} else {
-					tm, _ = time.Parse(time.RFC3339, v)
+					// Try common formats
+					formats := []string{time.RFC3339, "2006-01-02 15:04:05", "2006-01-02T15:04:05Z07:00"}
+					parsed := false
+					for _, f := range formats {
+						if t, err := time.Parse(f, v); err == nil {
+							tm = t
+							parsed = true
+							break
+						}
+					}
+					if !parsed {
+						return v // Return raw if can't parse
+					}
 				}
 			default:
 				return ""
@@ -86,7 +98,19 @@ func (h *BaseHandler) getFuncMap(tz string) template.FuncMap {
 				if v == "today" {
 					tm = time.Now()
 				} else {
-					tm, _ = time.Parse("2006-01-02", v)
+					// Try common formats
+					formats := []string{"2006-01-02", "2006-01-02 15:04:05", time.RFC3339}
+					parsed := false
+					for _, f := range formats {
+						if t, err := time.Parse(f, v); err == nil {
+							tm = t
+							parsed = true
+							break
+						}
+					}
+					if !parsed {
+						return v // Return raw
+					}
 				}
 			default:
 				return ""
@@ -177,27 +201,27 @@ func (h *BaseHandler) getFuncMap(tz string) template.FuncMap {
 		"formatPercentage": func(v float64) string {
 			return fmt.Sprintf("%.1f%%", v)
 		},
-		"formatPcsToUnit": func(totalPcs int, unitName string, subUnitName string, itemsPerUnit int) string {
-			if subUnitName == "" {
-				subUnitName = "Pcs"
+		"formatPcsToUnit": func(totalPcs int, unitName string, baseUnitName string, itemsPerUnit int) string {
+			if baseUnitName == "" {
+				baseUnitName = "Pcs"
 			}
 
 			if totalPcs <= 0 {
-				return fmt.Sprintf("0 %s", subUnitName)
+				return fmt.Sprintf("0 %s", baseUnitName)
 			}
-			if itemsPerUnit <= 1 || unitName == subUnitName {
-				return fmt.Sprintf("%d %s", totalPcs, subUnitName)
+			if itemsPerUnit <= 1 || unitName == baseUnitName {
+				return fmt.Sprintf("%d %s", totalPcs, baseUnitName)
 			}
 
 			units := totalPcs / itemsPerUnit
 			remainingPcs := totalPcs % itemsPerUnit
 
 			if units > 0 && remainingPcs > 0 {
-				return fmt.Sprintf("%d %s %d %s", units, unitName, remainingPcs, subUnitName)
+				return fmt.Sprintf("%d %s %d %s", units, unitName, remainingPcs, baseUnitName)
 			} else if units > 0 {
 				return fmt.Sprintf("%d %s", units, unitName)
 			}
-			return fmt.Sprintf("%d %s", remainingPcs, subUnitName)
+			return fmt.Sprintf("%d %s", remainingPcs, baseUnitName)
 		},
 	}
 }
