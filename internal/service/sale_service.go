@@ -140,7 +140,7 @@ func (s *saleService) ProcessSale(userID int, items []domain.SaleItem, paymentMe
 	}
 
 	if discount > totalAmount {
-		return 0, fmt.Errorf("discount (%.2f) cannot exceed total amount (%.2f)", discount, totalAmount)
+		return 0, fmt.Errorf("discount (%.0f) cannot exceed total amount (%.0f)", discount, totalAmount)
 	}
 
 	finalTotal := totalAmount - discount
@@ -177,7 +177,7 @@ func (s *saleService) ProcessSale(userID int, items []domain.SaleItem, paymentMe
 		}
 	}
 
-	if err := logRepo.Log(userID, fmt.Sprintf("Processed sale #%d - Total: Rp %.2f", saleID, finalTotal)); err != nil {
+	if err := logRepo.Log(userID, fmt.Sprintf("Processed sale #%d - Total: Rp %.0f", saleID, finalTotal)); err != nil {
 		return 0, err
 	}
 
@@ -227,7 +227,7 @@ func (s *saleService) VoidSale(saleID, adminUserID int) error {
 		}
 	}
 
-	if err := logRepo.Log(adminUserID, fmt.Sprintf("Voided sale #%d - Amount: Rp %.2f", saleID, sale.TotalAmount)); err != nil {
+	if err := logRepo.Log(adminUserID, fmt.Sprintf("Voided sale #%d - Amount: Rp %.0f", saleID, sale.TotalAmount)); err != nil {
 		return err
 	}
 

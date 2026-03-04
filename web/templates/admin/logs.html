@@ -19,22 +19,27 @@
                 <form method="GET" action="/activity-log" class="row g-3 align-items-end">
                     <div class="col-md-4">
                         <label class="form-label small fw-bold text-muted">{{ t "start_date" .Lang }}</label>
-                        <input type="date" name="start_date" class="form-control rounded-3" value="{{ .filters.start_date }}">
+                        <input type="date" name="start_date" class="form-control rounded-3"
+                            value="{{ .filters.start_date }}">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label small fw-bold text-muted">{{ t "end_date" .Lang }}</label>
-                        <input type="date" name="end_date" class="form-control rounded-3" value="{{ .filters.end_date }}">
+                        <input type="date" name="end_date" class="form-control rounded-3"
+                            value="{{ .filters.end_date }}">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label small fw-bold text-muted">{{ t "sort" .Lang }}</label>
                         <select name="sort" class="form-select rounded-3">
-                            <option value="desc" {{ if or (eq .filters.sort "desc") (eq .filters.sort "") }}selected{{ end }}>{{ t "newest" .Lang }}</option>
-                            <option value="asc" {{ if eq .filters.sort "asc" }}selected{{ end }}>{{ t "oldest" .Lang }}</option>
+                            <option value="desc" {{ if or (eq .filters.sort "desc" ) (eq .filters.sort "" ) }}selected{{
+                                end }}>{{ t "newest" .Lang }}</option>
+                            <option value="asc" {{ if eq .filters.sort "asc" }}selected{{ end }}>{{ t "oldest" .Lang }}
+                            </option>
                         </select>
                     </div>
                     <div class="col-md-2">
                         <button type="submit" class="btn btn-primary w-100 rounded-3 fw-bold">
-                            <i data-lucide="search" class="me-1" style="width: 16px; height: 16px;"></i> {{ t "filter" .Lang }}
+                            <i data-lucide="search" class="me-1" style="width: 16px; height: 16px;"></i> {{ t "filter"
+                            .Lang }}
                         </button>
                     </div>
                 </form>
@@ -48,7 +53,8 @@
                     {{ range .logs }}
                     <div class="activity-item d-flex gap-3 mb-4 position-relative">
                         <div class="activity-icon-wrapper flex-shrink-0">
-                            <div class="activity-icon-badge rounded-circle d-flex align-items-center justify-content-center shadow-sm" data-action="{{ .Action }}" style="width: 40px; height: 40px;">
+                            <div class="activity-icon-badge rounded-circle d-flex align-items-center justify-content-center shadow-sm"
+                                data-action="{{ .Action }}" style="width: 40px; height: 40px;">
                                 <i data-lucide="activity" style="width: 20px; height: 20px;"></i>
                             </div>
                         </div>
@@ -58,13 +64,14 @@
                                 <span class="activity-time text-muted small ms-2">{{ formatDateTime .CreatedAt }}</span>
                             </div>
                             <div class="activity-action text-secondary small">
-                                {{ .Action }}
+                                {{ formatLogAction .Action }}
                             </div>
                         </div>
                     </div>
                     {{ else }}
                     <div class="text-center py-5 text-muted">
-                        <i data-lucide="inbox" class="d-block mx-auto mb-3" style="width: 48px; height: 48px; opacity: 0.2;"></i>
+                        <i data-lucide="inbox" class="d-block mx-auto mb-3"
+                            style="width: 48px; height: 48px; opacity: 0.2;"></i>
                         <p>{{ t "no_recent_activity" .Lang }}</p>
                     </div>
                     {{ end }}
@@ -79,6 +86,7 @@
     .activity-timeline-full {
         position: relative;
     }
+
     .activity-timeline-full::before {
         content: '';
         position: absolute;
@@ -89,21 +97,26 @@
         background: #f1f3f5;
         z-index: 0;
     }
+
     .activity-icon-wrapper {
         z-index: 1;
         position: relative;
     }
+
     .activity-icon-badge {
         background: white;
         transition: all 0.2s ease;
     }
+
     .activity-body {
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
+
     .activity-item:hover .activity-body {
         transform: translateX(5px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
     }
+
     .activity-item:hover .activity-icon-badge {
         transform: scale(1.1);
     }

@@ -22,7 +22,7 @@
     </div>
 
     <div class="price-row">
-        <span class="price-tag">Rp {{ formatNumber .selling_price }}</span>
+        <span class="price-tag">{{ formatRupiah .selling_price }}</span>
         <span class="stock-badge {{ if le .total_stock 0 }}critical-stock{{ else if lt .total_stock 5 }}low-stock{{ else }}in-stock{{ end }}">
             {{ formatPcsToUnit .total_stock .unit .base_unit .items_per_unit }}
         </span>

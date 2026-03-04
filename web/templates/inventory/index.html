@@ -1,7 +1,13 @@
 {{ define "content" }}
 <style>
-    .text-orange { color: #f97316 !important; }
-    .smaller { font-size: 0.75rem; }
+    .text-orange {
+        color: #f97316 !important;
+    }
+
+    .smaller {
+        font-size: 0.75rem;
+    }
+
     .product-inactive td:not(:last-child) {
         opacity: 0.65;
         filter: grayscale(100%);
@@ -15,9 +21,10 @@
                 <h1 class="display-6 mb-1 fw-bold">{{ .PageTitle }}</h1>
                 <p class="text-muted mb-0">{{ t "manage_products_desc" .Lang }}</p>
             </div>
-            
+
             <div class="d-flex gap-2">
-                <button type="button" class="btn btn-primary rounded-3 d-flex align-items-center gap-2 px-4 shadow-sm" onclick="openAddModal()">
+                <button type="button" class="btn btn-primary rounded-3 d-flex align-items-center gap-2 px-4 shadow-sm"
+                    onclick="openAddModal()">
                     <i data-lucide="plus-circle" style="width: 20px; height: 20px;"></i>
                     <span class="fw-bold">{{ t "add_new_product" .Lang }}</span>
                 </button>
@@ -26,17 +33,22 @@
 
         {{ if and (eq .CurrentUser.Role "admin") (gt .PendingCount 0) }}
         <!-- Pending Approval Banner -->
-        <div class="alert border-0 rounded-4 mb-4 d-flex align-items-center justify-content-between gap-3" style="background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); border-left: 4px solid #f97316 !important; border-left-style: solid !important;">
+        <div class="alert border-0 rounded-4 mb-4 d-flex align-items-center justify-content-between gap-3"
+            style="background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); border-left: 4px solid #f97316 !important; border-left-style: solid !important;">
             <div class="d-flex align-items-center gap-3">
-                <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 42px; height: 42px; background: rgba(249,115,22,0.15);">
+                <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                    style="width: 42px; height: 42px; background: rgba(249,115,22,0.15);">
                     <i data-lucide="shield-alert" style="width: 22px; height: 22px; color: #f97316;"></i>
                 </div>
                 <div>
-                    <div class="fw-bold text-dark" style="font-size: 0.95rem;">{{ t "pending_banner_title" .Lang }}</div>
-                    <div class="text-muted small"><strong class="text-warning" style="color: #ea580c !important;">{{ .PendingCount }}</strong> {{ t "pending_count_badge" .Lang }}</div>
+                    <div class="fw-bold text-dark" style="font-size: 0.95rem;">{{ t "pending_banner_title" .Lang }}
+                    </div>
+                    <div class="text-muted small"><strong class="text-warning" style="color: #ea580c !important;">{{
+                            .PendingCount }}</strong> {{ t "pending_count_badge" .Lang }}</div>
                 </div>
             </div>
-            <a href="/products?filter=pending" class="btn btn-sm fw-bold rounded-3 px-3" style="background: #f97316; border-color: #f97316; color: #fff; white-space: nowrap;">
+            <a href="/products?filter=pending" class="btn btn-sm fw-bold rounded-3 px-3"
+                style="background: #f97316; border-color: #f97316; color: #fff; white-space: nowrap;">
                 <i data-lucide="eye" style="width: 14px; height: 14px;"></i> {{ t "view_all" .Lang }}
             </a>
         </div>
@@ -46,32 +58,45 @@
         <div class="card border-0 shadow-sm p-4 rounded-4 mb-4 bg-white">
             <form method="GET" action="/products" class="row g-3 align-items-end">
                 <div class="col-md-5">
-                    <label class="form-label small fw-bold text-muted text-uppercase">{{ t "search_products" .Lang }}</label>
+                    <label class="form-label small fw-bold text-muted text-uppercase">{{ t "search_products" .Lang
+                        }}</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-0 rounded-start-3">
                             <i data-lucide="search" style="width: 18px; height: 18px;" class="text-muted"></i>
                         </span>
-                        <input type="text" name="search" class="form-control border-0 bg-light rounded-end-3 py-2 shadow-none" placeholder="{{ t `search_products_placeholder` .Lang }}" value="{{ index .Filters `search` }}">
+                        <input type="text" name="search"
+                            class="form-control border-0 bg-light rounded-end-3 py-2 shadow-none"
+                            placeholder="{{ t `search_products_placeholder` .Lang }}"
+                            value="{{ index .Filters `search` }}">
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold text-muted text-uppercase">{{ t "filter_status" .Lang }}</label>
+                    <label class="form-label small fw-bold text-muted text-uppercase">{{ t "filter_status" .Lang
+                        }}</label>
                     <select name="filter" class="form-select border-0 bg-light rounded-3 py-2 shadow-none">
                         <option value="">{{ t "all_products" .Lang }}</option>
-                        <option value="active" {{ if eq (index .Filters "filter") "active" }}selected{{ end }}>{{ t "active" .Lang }} Only</option>
-                        <option value="inactive" {{ if eq (index .Filters "filter") "inactive" }}selected{{ end }}>{{ t "inactive" .Lang }} Only</option>
-                        <option value="low_stock" {{ if eq (index .Filters "filter") "low_stock" }}selected{{ end }}>{{ t "low_stock" .Lang }}</option>
-                        <option value="expiring" {{ if eq (index .Filters "filter") "expiring" }}selected{{ end }}>{{ t "expiring_soon_90d" .Lang }}</option>
-                        <option value="expiring_180" {{ if eq (index .Filters "filter") "expiring_180" }}selected{{ end }}>{{ t "expiring_soon_180d" .Lang }}</option>
-                        <option value="expired" {{ if eq (index .Filters "filter") "expired" }}selected{{ end }}>{{ t "already_expired" .Lang }}</option>
-                        <option value="pending" {{ if eq (index .Filters "filter") "pending" }}selected{{ end }}>{{ t "pending_verification" .Lang }}</option>
+                        <option value="active" {{ if eq (index .Filters "filter" ) "active" }}selected{{ end }}>{{ t
+                            "active" .Lang }} Only</option>
+                        <option value="inactive" {{ if eq (index .Filters "filter" ) "inactive" }}selected{{ end }}>{{ t
+                            "inactive" .Lang }} Only</option>
+                        <option value="low_stock" {{ if eq (index .Filters "filter" ) "low_stock" }}selected{{ end }}>{{
+                            t "low_stock" .Lang }}</option>
+                        <option value="expiring" {{ if eq (index .Filters "filter" ) "expiring" }}selected{{ end }}>{{ t
+                            "expiring_soon_90d" .Lang }}</option>
+                        <option value="expiring_180" {{ if eq (index .Filters "filter" ) "expiring_180" }}selected{{ end
+                            }}>{{ t "expiring_soon_180d" .Lang }}</option>
+                        <option value="expired" {{ if eq (index .Filters "filter" ) "expired" }}selected{{ end }}>{{ t
+                            "already_expired" .Lang }}</option>
+                        <option value="pending" {{ if eq (index .Filters "filter" ) "pending" }}selected{{ end }}>{{ t
+                            "pending_verification" .Lang }}</option>
                     </select>
                 </div>
                 <div class="col-md-2 d-flex gap-2">
                     <button type="submit" class="btn btn-dark w-100 py-2 rounded-3 fw-bold">
                         {{ t "filter" .Lang }}
                     </button>
-                    <button type="button" class="btn btn-outline-success py-2 rounded-3 fw-bold" onclick="exportToExcel()" title="Export to Excel">
+                    <button type="button" class="btn btn-outline-success py-2 rounded-3 fw-bold"
+                        onclick="exportToExcel()" title="Export to Excel">
                         <i data-lucide="file-spreadsheet" style="width: 20px; height: 20px;"></i>
                     </button>
                 </div>
@@ -90,144 +115,195 @@
                     <thead class="bg-light">
                         <tr>
                             <th class="border-0 px-4 py-3 text-muted small fw-bold text-uppercase" style="width: 40px;">
-                                <input type="checkbox" class="form-check-input shadow-none" id="selectAllProducts" onclick="toggleAllProducts(this)">
+                                <input type="checkbox" class="form-check-input shadow-none" id="selectAllProducts"
+                                    onclick="toggleAllProducts(this)">
                             </th>
-                            <th class="border-0 py-3 text-muted small fw-bold text-uppercase">{{ t "product_info" .Lang }}</th>
-                            <th class="border-0 py-3 text-muted small fw-bold text-uppercase">{{ t "category" .Lang }}</th>
-                            <th class="border-0 py-3 text-muted small fw-bold text-uppercase text-center">{{ t "stock" .Lang }}</th>
-                            <th class="border-0 py-3 text-muted small fw-bold text-uppercase">{{ t "purchase_sell_price" .Lang }}</th>
-                            <th class="border-0 py-3 text-muted small fw-bold text-uppercase">{{ t "expiry_date" .Lang }}</th>
-                            <th class="border-0 py-3 text-muted small fw-bold text-uppercase">{{ t "status" .Lang }}</th>
-                            <th class="border-0 px-4 py-3 text-muted small fw-bold text-uppercase text-center">{{ t "actions" .Lang }}</th>
+                            <th class="border-0 py-3 text-muted small fw-bold text-uppercase">{{ t "product_info" .Lang
+                                }}</th>
+                            <th class="border-0 py-3 text-muted small fw-bold text-uppercase">{{ t "category" .Lang }}
+                            </th>
+                            <th class="border-0 py-3 text-muted small fw-bold text-uppercase text-center">{{ t "stock"
+                                .Lang }}</th>
+                            <th class="border-0 py-3 text-muted small fw-bold text-uppercase">{{ t "purchase_sell_price"
+                                .Lang }}</th>
+                            <th class="border-0 py-3 text-muted small fw-bold text-uppercase">{{ t "expiry_date" .Lang
+                                }}</th>
+                            <th class="border-0 py-3 text-muted small fw-bold text-uppercase">{{ t "status" .Lang }}
+                            </th>
+                            <th class="border-0 px-4 py-3 text-muted small fw-bold text-uppercase text-center">{{ t
+                                "actions" .Lang }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {{ if not .Products }}
-                            <tr>
-                                <td colspan="6" class="text-center py-5">
-                                    <div class="text-muted mb-2">
-                                        <i data-lucide="package-search" style="width: 48px; height: 48px; opacity: 0.2;"></i>
-                                    </div>
-                                    <p class="mb-0">{{ t "no_products_found_criteria" .Lang }}</p>
-                                </td>
-                            </tr>
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <div class="text-muted mb-2">
+                                    <i data-lucide="package-search"
+                                        style="width: 48px; height: 48px; opacity: 0.2;"></i>
+                                </div>
+                                <p class="mb-0">{{ t "no_products_found_criteria" .Lang }}</p>
+                            </td>
+                        </tr>
                         {{ else }}
-                            {{ range .Products }}
-                            <tr {{ if eq .status "inactive" }}class="product-inactive"{{ end }} data-product-id="{{ .id }}">
-                                <td class="px-4 py-3">
-                                    <input type="checkbox" class="form-check-input shadow-none product-checkbox" value="{{ .id }}" onclick="updateBulkActions()">
-                                </td>
-                                <td class="py-3">
-                                    <div class="d-flex flex-column">
-                                        <span class="fw-bold text-dark">{{ .name }}</span>
-                                        <span class="smaller text-muted">SKU: {{ .sku_code }}</span>
-                                    </div>
-                                </td>
-                                <td class="py-3">
-                                    <div class="d-flex flex-column gap-1">
-                                        <span class="fw-bold text-dark">{{ .category }}</span>
-                                        {{ if .therapeutic_class }}
-                                        <span class="smaller text-muted">{{ .therapeutic_class }}</span>
-                                        {{ end }}
-                                    </div>
-                                </td>
-                                <td class="py-3 text-center">
-                                    <div class="d-flex flex-column align-items-center">
-                                        <span class="fw-bold {{ if lt .total_stock 10 }}text-danger{{ else if lt .total_stock 20 }}text-warning{{ else }}text-success{{ end }}">
-                                            {{ formatPcsToUnit .total_stock .unit .base_unit .items_per_unit }}
-                                        </span>
-                                    </div>
-                                </td>
-                                <td class="py-3">
-                                    <div class="d-flex flex-column gap-1">
-                                        {{ if eq $.CurrentUser.Role "admin" }}
-                                        <span class="fw-bold text-success" title="{{ t `purchase_price` $.Lang }}">
-                                            <i data-lucide="trending-down" style="width: 14px; height: 14px;" class="me-1"></i>{{ formatRupiah .purchase_price }} <small class="text-muted fw-normal">/ Pcs</small>
-                                        </span>
-                                        {{ end }}
-                                        <span class="fw-bold text-primary" title="{{ t `selling_price` $.Lang }}">
-                                            <i data-lucide="trending-up" style="width: 14px; height: 14px;" class="me-1"></i>{{ formatRupiah .selling_price }} <small class="text-muted fw-normal">/ Pcs</small>
-                                        </span>
-                                    </div>
-                                </td>
-                                <td class="py-3">
-                                    {{ if .nearest_expiry }}
-                                        {{ $days := daysUntil .nearest_expiry }}
-                                        <div class="d-flex flex-column">
-                                            <span class="small fw-bold {{ if le $days 0 }}text-danger{{ else if lt $days 90 }}text-orange{{ else if lt $days 180 }}text-warning{{ else }}text-muted{{ end }}">
-                                                {{ formatShortDate .nearest_expiry }}
-                                            </span>
-                                            <span class="smaller {{ if le $days 0 }}text-danger{{ else if lt $days 90 }}text-orange{{ else if lt $days 180 }}text-warning{{ else }}text-muted{{ end }}">
-                                                {{ if le $days 0 }}
-                                                    {{ t "already_expired" $.Lang }}
-                                                {{ else }}
-                                                    {{ $days }} {{ t "days" $.Lang }}
-                                                {{ end }}
-                                            </span>
-                                        </div>
-                                    {{ else }}
-                                        <span class="text-muted smaller">-</span>
+                        {{ range .Products }}
+                        <tr {{ if eq .status "inactive" }}class="product-inactive" {{ end }}
+                            data-product-id="{{ .id }}">
+                            <td class="px-4 py-3">
+                                <input type="checkbox" class="form-check-input shadow-none product-checkbox"
+                                    value="{{ .id }}" onclick="updateBulkActions()">
+                            </td>
+                            <td class="py-3">
+                                <div class="d-flex flex-column">
+                                    <span class="fw-bold text-dark">{{ .name }}</span>
+                                    <span class="smaller text-muted">SKU: {{ .sku_code }}</span>
+                                </div>
+                            </td>
+                            <td class="py-3">
+                                <div class="d-flex flex-column gap-1">
+                                    <span class="fw-bold text-dark">{{ .category }}</span>
+                                    {{ if .therapeutic_class }}
+                                    <span class="smaller text-muted">{{ .therapeutic_class }}</span>
                                     {{ end }}
-                                </td>
-                                <td class="py-3">
-                                    <div class="d-flex flex-column gap-1 align-items-start">
-                                        <!-- Active / Inactive Status -->
+                                </div>
+                            </td>
+                            <td class="py-3 text-center">
+                                <div class="d-flex flex-column align-items-center">
+                                    <span
+                                        class="fw-bold {{ if lt .total_stock 10 }}text-danger{{ else if lt .total_stock 20 }}text-warning{{ else }}text-success{{ end }}">
+                                        {{ formatPcsToUnit .total_stock .unit .base_unit .items_per_unit }}
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="py-3">
+                                <div class="d-flex flex-column gap-1">
+                                    {{ if eq $.CurrentUser.Role "admin" }}
+                                    <span class="fw-bold text-success" title="{{ t `purchase_price` $.Lang }}">
+                                        <i data-lucide="trending-down" style="width: 14px; height: 14px;"
+                                            class="me-1"></i>{{ formatRupiah .purchase_price }} <small
+                                            class="text-muted fw-normal">/ Pcs</small>
+                                    </span>
+                                    {{ end }}
+                                    <span class="fw-bold text-primary" title="{{ t `selling_price` $.Lang }}">
+                                        <i data-lucide="trending-up" style="width: 14px; height: 14px;"
+                                            class="me-1"></i>{{ formatRupiah .selling_price }} <small
+                                            class="text-muted fw-normal">/ Pcs</small>
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="py-3">
+                                {{ if .nearest_expiry }}
+                                {{ $days := daysUntil .nearest_expiry }}
+                                <div class="d-flex flex-column">
+                                    <span
+                                        class="small fw-bold {{ if le $days 0 }}text-danger{{ else if lt $days 90 }}text-orange{{ else if lt $days 180 }}text-warning{{ else }}text-muted{{ end }}">
+                                        {{ formatShortDate .nearest_expiry }}
+                                    </span>
+                                    <span
+                                        class="smaller {{ if le $days 0 }}text-danger{{ else if lt $days 90 }}text-orange{{ else if lt $days 180 }}text-warning{{ else }}text-muted{{ end }}">
+                                        {{ if le $days 0 }}
+                                        {{ t "already_expired" $.Lang }}
+                                        {{ else }}
+                                        {{ $days }} {{ t "days" $.Lang }}
+                                        {{ end }}
+                                    </span>
+                                </div>
+                                {{ else }}
+                                <span class="text-muted smaller">-</span>
+                                {{ end }}
+                            </td>
+                            <td class="py-3">
+                                <div class="d-flex flex-column gap-1 align-items-start">
+                                    <!-- Active / Inactive Status -->
+                                    {{ if eq .status "active" }}
+                                    <span class="badge bg-success bg-opacity-10 text-success border-0 px-2 py-1">{{ t
+                                        "active" $.Lang }}</span>
+                                    {{ else }}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border-0 px-2 py-1">{{ t
+                                        "inactive" $.Lang }}</span>
+                                    {{ end }}
+
+                                    <!-- Verification Status -->
+                                    {{ if not .is_verified }}
+                                    <span class="badge bg-warning bg-opacity-10 text-warning border-0 px-2 py-1 mt-1">
+                                        <i data-lucide="shield-alert" style="width: 12px; height: 12px;"></i> {{ t
+                                        "pending" $.Lang }}
+                                    </span>
+                                    {{ else }}
+                                    <span class="badge bg-info bg-opacity-10 text-info border-0 px-2 py-1 mt-1">
+                                        <i data-lucide="shield-check" style="width: 12px; height: 12px;"></i> Approved
+                                    </span>
+                                    {{ end }}
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 align-middle text-center" style="width: 80px;">
+                                <div class="dropdown">
+                                    <button
+                                        class="btn btn-sm btn-light text-muted p-1 rounded-circle border-0 dropdown-toggle-hide-arrow d-flex align-items-center justify-content-center shadow-sm mx-auto"
+                                        style="width: 32px; height: 32px; transition: all 0.2s ease;" type="button"
+                                        data-bs-toggle="dropdown" aria-expanded="false" data-name="{{ .name }}"
+                                        onmouseover="this.classList.replace('btn-light', 'btn-primary'); this.classList.replace('text-muted', 'text-white');"
+                                        onmouseout="this.classList.replace('btn-primary', 'btn-light'); this.classList.replace('text-white', 'text-muted');">
+                                        <i data-lucide="more-vertical" style="width: 18px; height: 18px;"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 mt-1 py-2"
+                                        style="z-index: 1050; min-width: 180px;">
+                                        <li><a class="dropdown-item py-2 px-3 fw-medium d-flex align-items-center gap-2"
+                                                href="javascript:void(0)" onclick="openDetailsModal('{{ .id }}')"><i
+                                                    data-lucide="eye" style="width: 16px; height: 16px;"></i> {{ t
+                                                "details" $.Lang }}</a></li>
+                                        <li><a class="dropdown-item py-2 px-3 fw-medium d-flex align-items-center gap-2"
+                                                href="javascript:void(0)" hx-get="/api/products/details?id={{ .id }}"
+                                                hx-target="#modal-container" onclick="window.autoOpenLedger = true">
+                                                <i data-lucide="list" style="width: 16px; height: 16px;"></i> {{ t
+                                                "stock_ledger" $.Lang }}</a></li>
                                         {{ if eq .status "active" }}
-                                            <span class="badge bg-success bg-opacity-10 text-success border-0 px-2 py-1">{{ t "active" $.Lang }}</span>
-                                        {{ else }}
-                                            <span class="badge bg-danger bg-opacity-10 text-danger border-0 px-2 py-1">{{ t "inactive" $.Lang }}</span>
+                                        <li><a class="dropdown-item py-2 px-3 fw-medium d-flex align-items-center gap-2"
+                                                href="javascript:void(0)"
+                                                onclick="openAddStockModal('{{ .id }}', this.closest('.dropdown').querySelector('button').getAttribute('data-name'))"><i
+                                                    data-lucide="package-plus" style="width: 16px; height: 16px;"></i>
+                                                {{ t "add_stock_batch" $.Lang }}</a></li>
                                         {{ end }}
-                                        
-                                        <!-- Verification Status -->
-                                        {{ if not .is_verified }}
-                                            <span class="badge bg-warning bg-opacity-10 text-warning border-0 px-2 py-1 mt-1">
-                                                <i data-lucide="shield-alert" style="width: 12px; height: 12px;"></i> {{ t "pending" $.Lang }}
-                                            </span>
-                                        {{ else }}
-                                            <span class="badge bg-info bg-opacity-10 text-info border-0 px-2 py-1 mt-1">
-                                                <i data-lucide="shield-check" style="width: 12px; height: 12px;"></i> Approved
-                                            </span>
+                                        <li><a class="dropdown-item py-2 px-3 fw-medium d-flex align-items-center gap-2"
+                                                href="javascript:void(0)" onclick="openEditModal('{{ .id }}')"><i
+                                                    data-lucide="edit" style="width: 16px; height: 16px;"></i> {{ t
+                                                "edit_product" $.Lang }}</a></li>
+                                        {{ if and (eq $.CurrentUser.Role "admin") (not .is_verified) }}
+                                        <li>
+                                            <hr class="dropdown-divider my-1">
+                                        </li>
+                                        <li><a class="dropdown-item py-2 px-3 fw-medium text-success d-flex align-items-center gap-2"
+                                                href="javascript:void(0)"
+                                                onclick="approveProduct('{{ .id }}', this.closest('.dropdown').querySelector('button').getAttribute('data-name'))"><i
+                                                    data-lucide="shield-check" style="width: 16px; height: 16px;"></i>
+                                                {{ t "approve" $.Lang }}</a></li>
                                         {{ end }}
-                                    </div>
-                                </td>
-                                <td class="px-4 py-3 align-middle text-center" style="width: 80px;">
-                                    <div class="dropdown">
-                                        <button class="btn btn-sm btn-light text-muted p-1 rounded-circle border-0 dropdown-toggle-hide-arrow d-flex align-items-center justify-content-center shadow-sm mx-auto" 
-                                                style="width: 32px; height: 32px; transition: all 0.2s ease;" 
-                                                type="button" data-bs-toggle="dropdown" aria-expanded="false" 
-                                                data-name="{{ .name }}"
-                                                onmouseover="this.classList.replace('btn-light', 'btn-primary'); this.classList.replace('text-muted', 'text-white');" 
-                                                onmouseout="this.classList.replace('btn-primary', 'btn-light'); this.classList.replace('text-white', 'text-muted');">
-                                            <i data-lucide="more-vertical" style="width: 18px; height: 18px;"></i>
-                                        </button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 mt-1 py-2" style="z-index: 1050; min-width: 180px;">
-                                            <li><a class="dropdown-item py-2 px-3 fw-medium d-flex align-items-center gap-2" href="javascript:void(0)" onclick="openDetailsModal('{{ .id }}')"><i data-lucide="eye" style="width: 16px; height: 16px;"></i> {{ t "details" $.Lang }}</a></li>
-                                            <li><a class="dropdown-item py-2 px-3 fw-medium d-flex align-items-center gap-2" 
-                                                   href="javascript:void(0)" 
-                                                   hx-get="/api/products/details?id={{ .id }}" 
-                                                   hx-target="#modal-container"
-                                                   onclick="window.autoOpenLedger = true">
-                                                <i data-lucide="list" style="width: 16px; height: 16px;"></i> {{ t "stock_ledger" $.Lang }}</a></li>
-                                            {{ if eq .status "active" }}
-                                            <li><a class="dropdown-item py-2 px-3 fw-medium d-flex align-items-center gap-2" href="javascript:void(0)" onclick="openAddStockModal('{{ .id }}', this.closest('.dropdown').querySelector('button').getAttribute('data-name'))"><i data-lucide="package-plus" style="width: 16px; height: 16px;"></i> {{ t "add_stock_batch" $.Lang }}</a></li>
-                                            {{ end }}
-                                            <li><a class="dropdown-item py-2 px-3 fw-medium d-flex align-items-center gap-2" href="javascript:void(0)" onclick="openEditModal('{{ .id }}')"><i data-lucide="edit" style="width: 16px; height: 16px;"></i> {{ t "edit_product" $.Lang }}</a></li>
-                                            {{ if and (eq $.CurrentUser.Role "admin") (not .is_verified) }}
-                                            <li><hr class="dropdown-divider my-1"></li>
-                                            <li><a class="dropdown-item py-2 px-3 fw-medium text-success d-flex align-items-center gap-2" href="javascript:void(0)" onclick="approveProduct('{{ .id }}', this.closest('.dropdown').querySelector('button').getAttribute('data-name'))"><i data-lucide="shield-check" style="width: 16px; height: 16px;"></i> {{ t "approve" $.Lang }}</a></li>
-                                            {{ end }}
-                                            <li><hr class="dropdown-divider my-1"></li>
-                                            {{ if eq .status "active" }}
-                                            <li><a class="dropdown-item py-2 px-3 fw-medium text-warning d-flex align-items-center gap-2" href="javascript:void(0)" onclick="toggleProductStatus('{{ .id }}', this.closest('.dropdown').querySelector('button').getAttribute('data-name'), 'active')"><i data-lucide="power-off" style="width: 16px; height: 16px;"></i> {{ t "deactivate" $.Lang }}</a></li>
-                                            {{ else }}
-                                            <li><a class="dropdown-item py-2 px-3 fw-medium text-success d-flex align-items-center gap-2" href="javascript:void(0)" onclick="toggleProductStatus('{{ .id }}', this.closest('.dropdown').querySelector('button').getAttribute('data-name'), 'inactive')"><i data-lucide="power" style="width: 16px; height: 16px;"></i> {{ t "activate" $.Lang }}</a></li>
-                                            {{ end }}
-                                            <li><a class="dropdown-item py-2 px-3 fw-medium text-danger d-flex align-items-center gap-2" href="javascript:void(0)" hx-delete="/api/products/delete?id={{ .id }}" hx-confirm="{{ t `confirm_delete_product` $.Lang }}"><i data-lucide="trash-2" style="width: 16px; height: 16px;"></i> {{ t "delete" $.Lang }}</a></li>
-                                        </ul>
-                                    </div>
-                                </td>
-                            </tr>
-                            {{ end }}
+                                        <li>
+                                            <hr class="dropdown-divider my-1">
+                                        </li>
+                                        {{ if eq .status "active" }}
+                                        <li><a class="dropdown-item py-2 px-3 fw-medium text-warning d-flex align-items-center gap-2"
+                                                href="javascript:void(0)"
+                                                onclick="toggleProductStatus('{{ .id }}', this.closest('.dropdown').querySelector('button').getAttribute('data-name'), 'active')"><i
+                                                    data-lucide="power-off" style="width: 16px; height: 16px;"></i> {{ t
+                                                "deactivate" $.Lang }}</a></li>
+                                        {{ else }}
+                                        <li><a class="dropdown-item py-2 px-3 fw-medium text-success d-flex align-items-center gap-2"
+                                                href="javascript:void(0)"
+                                                onclick="toggleProductStatus('{{ .id }}', this.closest('.dropdown').querySelector('button').getAttribute('data-name'), 'inactive')"><i
+                                                    data-lucide="power" style="width: 16px; height: 16px;"></i> {{ t
+                                                "activate" $.Lang }}</a></li>
+                                        {{ end }}
+                                        <li><a class="dropdown-item py-2 px-3 fw-medium text-danger d-flex align-items-center gap-2"
+                                                href="javascript:void(0)" hx-delete="/api/products/delete?id={{ .id }}"
+                                                hx-confirm="{{ t `confirm_delete_product` $.Lang }}"><i
+                                                    data-lucide="trash-2" style="width: 16px; height: 16px;"></i> {{ t
+                                                "delete" $.Lang }}</a></li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {{ end }}
                         {{ end }}
                     </tbody>
                 </table>
@@ -235,7 +311,8 @@
             {{ if .Products }}
             <div class="p-4 border-top bg-light bg-opacity-50">
                 <div class="d-flex justify-content-between align-items-center">
-                    <span class="small text-muted">{{ t "showing" .Lang }} {{ len .Products }} {{ t "entries" .Lang }}</span>
+                    <span class="small text-muted">{{ t "showing" .Lang }} {{ len .Products }} {{ t "entries" .Lang
+                        }}</span>
                 </div>
             </div>
             {{ end }}
@@ -256,7 +333,8 @@
             </div>
             <div class="modal-header border-0 bg-light p-4">
                 <h5 class="modal-title fw-bold text-dark d-flex align-items-center gap-2" id="productFormModalLabel">
-                    <i data-lucide="plus-circle" id="modalIcon" class="text-primary" style="width: 24px; height: 24px;"></i>
+                    <i data-lucide="plus-circle" id="modalIcon" class="text-primary"
+                        style="width: 24px; height: 24px;"></i>
                     <span id="modalTitleText">{{ t "add_new_product" .Lang }}</span>
                 </h5>
                 <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -267,44 +345,79 @@
                     hx-on::after-request="document.getElementById('productSubmitBtn').disabled = false; document.getElementById('productSubmitBtnText').innerText = '{{ t `save_changes` .Lang }}'; if (event.detail.successful) { bootstrap.Modal.getInstance(document.getElementById('productModal')).hide(); }">
                     <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
                     <input type="hidden" name="id" id="productId" value="">
-                    
+
                     <div class="row g-3">
                         <!-- Section: Informasi Dasar -->
                         <div class="col-12">
-                            <h6 class="fw-bold text-muted text-uppercase mb-3 d-flex align-items-center gap-2" style="font-size: 0.75rem; letter-spacing: 0.5px;">
-                                <i data-lucide="info" style="width: 14px; height: 14px;"></i> {{ t "basic_information" .Lang }}
+                            <h6 class="fw-bold text-muted text-uppercase mb-3 d-flex align-items-center gap-2"
+                                style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                <i data-lucide="info" style="width: 14px; height: 14px;"></i> {{ t "basic_information"
+                                .Lang }}
                             </h6>
                             <div class="row g-3">
                                 <div class="col-md-8">
-                                    <label class="form-label small fw-bold text-muted">{{ t "product_name_sku_smart" .Lang }}</label>
-                                    <input type="text" name="name" id="productName" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" placeholder="{{ t `search_product_placeholder` .Lang }}" required>
+                                    <label class="form-label small fw-bold text-muted">{{ t "product_name_sku_smart"
+                                        .Lang }}</label>
+                                    <input type="text" name="name" id="productName"
+                                        class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50"
+                                        placeholder="{{ t `search_product_placeholder` .Lang }}" required>
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label small fw-bold text-muted">{{ t "sku_exact_code" .Lang }}</label>
-                                    <input type="text" name="sku_code" id="skuCode" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" placeholder="{{ t `unique_product_code` .Lang }}">
+                                    <label class="form-label small fw-bold text-muted">{{ t "sku_exact_code" .Lang
+                                        }}</label>
+                                    <input type="text" name="sku_code" id="skuCode"
+                                        class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50"
+                                        placeholder="{{ t `unique_product_code` .Lang }}">
                                 </div>
                                 <!-- Legal category removed -->
                                 <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-muted">{{ t "therapeutic_class" .Lang }}</label>
+                                    <label class="form-label small fw-bold text-muted">{{ t "therapeutic_class" .Lang
+                                        }}</label>
                                     <div class="dropdown" id="therapeuticDropdown">
-                                        <input type="text" name="therapeutic_class" id="therapeuticClass" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" placeholder="{{ t `type_to_search_class` .Lang }}" autocomplete="off" data-bs-toggle="dropdown" onkeyup="filterTherapeuticClasses()">
-                                        <ul class="dropdown-menu w-100 shadow border-0 rounded-3 mt-1" id="therapeuticList" style="max-height: 200px; overflow-y: auto;">
-                                            <li><a class="dropdown-item py-2" href="javascript:void(0)" onclick="selectTherapeuticClass('{{ t `analgesics` .Lang }}')">{{ t "analgesics" .Lang }}</a></li>
-                                            <li><a class="dropdown-item py-2" href="javascript:void(0)" onclick="selectTherapeuticClass('{{ t `antibiotics` .Lang }}')">{{ t "antibiotics" .Lang }}</a></li>
-                                            <li><a class="dropdown-item py-2" href="javascript:void(0)" onclick="selectTherapeuticClass('{{ t `antihypertensives` .Lang }}')">{{ t "antihypertensives" .Lang }}</a></li>
-                                            <li><a class="dropdown-item py-2" href="javascript:void(0)" onclick="selectTherapeuticClass('{{ t `antidiabetics` .Lang }}')">{{ t "antidiabetics" .Lang }}</a></li>
-                                            <li><a class="dropdown-item py-2" href="javascript:void(0)" onclick="selectTherapeuticClass('{{ t `antihistamines` .Lang }}')">{{ t "antihistamines" .Lang }}</a></li>
-                                            <li><a class="dropdown-item py-2" href="javascript:void(0)" onclick="selectTherapeuticClass('{{ t `vitamins` .Lang }}')">{{ t "vitamins" .Lang }}</a></li>
-                                            <li><a class="dropdown-item py-2" href="javascript:void(0)" onclick="selectTherapeuticClass('{{ t `antacids` .Lang }}')">{{ t "antacids" .Lang }}</a></li>
-                                            <li><a class="dropdown-item py-2" href="javascript:void(0)" onclick="selectTherapeuticClass('{{ t `antipyretics` .Lang }}')">{{ t "antipyretics" .Lang }}</a></li>
-                                            <li><a class="dropdown-item py-2" href="javascript:void(0)" onclick="selectTherapeuticClass('{{ t `antiseptics` .Lang }}')">{{ t "antiseptics" .Lang }}</a></li>
-                                            <li><a class="dropdown-item py-2" href="javascript:void(0)" onclick="selectTherapeuticClass('{{ t `bronchodilators` .Lang }}')">{{ t "bronchodilators" .Lang }}</a></li>
+                                        <input type="text" name="therapeutic_class" id="therapeuticClass"
+                                            class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50"
+                                            placeholder="{{ t `type_to_search_class` .Lang }}" autocomplete="off"
+                                            data-bs-toggle="dropdown" onkeyup="filterTherapeuticClasses()">
+                                        <ul class="dropdown-menu w-100 shadow border-0 rounded-3 mt-1"
+                                            id="therapeuticList" style="max-height: 200px; overflow-y: auto;">
+                                            <li><a class="dropdown-item py-2" href="javascript:void(0)"
+                                                    onclick="selectTherapeuticClass('{{ t `analgesics` .Lang }}')">{{ t
+                                                    "analgesics" .Lang }}</a></li>
+                                            <li><a class="dropdown-item py-2" href="javascript:void(0)"
+                                                    onclick="selectTherapeuticClass('{{ t `antibiotics` .Lang }}')">{{ t
+                                                    "antibiotics" .Lang }}</a></li>
+                                            <li><a class="dropdown-item py-2" href="javascript:void(0)"
+                                                    onclick="selectTherapeuticClass('{{ t `antihypertensives` .Lang }}')">{{
+                                                    t "antihypertensives" .Lang }}</a></li>
+                                            <li><a class="dropdown-item py-2" href="javascript:void(0)"
+                                                    onclick="selectTherapeuticClass('{{ t `antidiabetics` .Lang }}')">{{
+                                                    t "antidiabetics" .Lang }}</a></li>
+                                            <li><a class="dropdown-item py-2" href="javascript:void(0)"
+                                                    onclick="selectTherapeuticClass('{{ t `antihistamines` .Lang }}')">{{
+                                                    t "antihistamines" .Lang }}</a></li>
+                                            <li><a class="dropdown-item py-2" href="javascript:void(0)"
+                                                    onclick="selectTherapeuticClass('{{ t `vitamins` .Lang }}')">{{ t
+                                                    "vitamins" .Lang }}</a></li>
+                                            <li><a class="dropdown-item py-2" href="javascript:void(0)"
+                                                    onclick="selectTherapeuticClass('{{ t `antacids` .Lang }}')">{{ t
+                                                    "antacids" .Lang }}</a></li>
+                                            <li><a class="dropdown-item py-2" href="javascript:void(0)"
+                                                    onclick="selectTherapeuticClass('{{ t `antipyretics` .Lang }}')">{{
+                                                    t "antipyretics" .Lang }}</a></li>
+                                            <li><a class="dropdown-item py-2" href="javascript:void(0)"
+                                                    onclick="selectTherapeuticClass('{{ t `antiseptics` .Lang }}')">{{ t
+                                                    "antiseptics" .Lang }}</a></li>
+                                            <li><a class="dropdown-item py-2" href="javascript:void(0)"
+                                                    onclick="selectTherapeuticClass('{{ t `bronchodilators` .Lang }}')">{{
+                                                    t "bronchodilators" .Lang }}</a></li>
                                         </ul>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label small fw-bold text-muted">{{ t "category" .Lang }}</label>
-                                    <select name="category" id="productCategory" class="form-select rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" required>
+                                    <select name="category" id="productCategory"
+                                        class="form-select rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50"
+                                        required>
                                         <option value="Medicine - OTC">{{ t "cat_med_otc" .Lang }}</option>
                                         <option value="Medicine - Prescription">{{ t "cat_med_rx" .Lang }}</option>
                                         <option value="Supplements">{{ t "cat_supplements" .Lang }}</option>
@@ -313,8 +426,11 @@
                                     </select>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-muted">{{ t "storage_location_rak" .Lang }}</label>
-                                    <input type="text" name="storage_location" id="storageLocation" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" placeholder="{{ t `storage_example` .Lang }}">
+                                    <label class="form-label small fw-bold text-muted">{{ t "storage_location_rak" .Lang
+                                        }}</label>
+                                    <input type="text" name="storage_location" id="storageLocation"
+                                        class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50"
+                                        placeholder="{{ t `storage_example` .Lang }}">
                                 </div>
                             </div>
                         </div>
@@ -322,23 +438,32 @@
                         <!-- Section: Harga -->
                         <hr class="my-4 border-light-subtle">
                         <div class="col-12 mt-0">
-                            <h6 class="fw-bold text-muted text-uppercase mb-3 d-flex align-items-center gap-2" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                            <h6 class="fw-bold text-muted text-uppercase mb-3 d-flex align-items-center gap-2"
+                                style="font-size: 0.75rem; letter-spacing: 0.5px;">
                                 <i data-lucide="tag" style="width: 14px; height: 14px;"></i> {{ t "pricing" .Lang }}
                             </h6>
                             <div class="row g-3">
-                                <div class="col-md-6 {{ if ne .CurrentUser.Role "admin" }}d-none{{ end }}">
-                                    <label class="form-label small fw-bold text-muted" id="labelPurchasePrice">{{ t "purchase_price" .Lang }} <span class="unit-suffix">(per Pcs)</span></label>
+                                <div class="col-md-6" id="purchasePriceContainer">
+                                    <label class="form-label small fw-bold text-muted" id="labelPurchasePrice">{{ t
+                                        "purchase_price" .Lang }} <span class="unit-suffix">(per Pcs)</span></label>
                                     <div class="input-group">
-                                        <span class="input-group-text bg-light border-light-subtle rounded-start-3 small fw-bold">Rp</span>
-                                        <input type="text" id="purchasePriceDisplay" class="form-control rounded-end-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" placeholder="0" {{ if eq .CurrentUser.Role "admin" }}required{{ end }}>
+                                        <span
+                                            class="input-group-text bg-light border-light-subtle rounded-start-3 small fw-bold">Rp</span>
+                                        <input type="text" id="purchasePriceDisplay"
+                                            class="form-control rounded-end-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50"
+                                            placeholder="0" {{ if eq .CurrentUser.Role "admin" }}required{{ end }}>
                                         <input type="hidden" name="purchase_price" id="purchasePrice" value="">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-muted" id="labelSellingPrice">{{ t "selling_price" .Lang }} <span class="unit-suffix">(per Pcs)</span></label>
+                                    <label class="form-label small fw-bold text-muted" id="labelSellingPrice">{{ t
+                                        "selling_price" .Lang }} <span class="unit-suffix">(per Pcs)</span></label>
                                     <div class="input-group">
-                                        <span class="input-group-text bg-light border-light-subtle rounded-start-3 small fw-bold">Rp</span>
-                                        <input type="text" id="sellingPriceDisplay" class="form-control rounded-end-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" placeholder="0" required>
+                                        <span
+                                            class="input-group-text bg-light border-light-subtle rounded-start-3 small fw-bold">Rp</span>
+                                        <input type="text" id="sellingPriceDisplay"
+                                            class="form-control rounded-end-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50"
+                                            placeholder="0" required>
                                         <input type="hidden" name="selling_price" id="sellingPrice" value="">
                                     </div>
                                 </div>
@@ -348,13 +473,17 @@
                         <!-- Section: Stok & Satuan -->
                         <hr class="my-4 border-light-subtle">
                         <div class="col-12 mt-0">
-                            <h6 class="fw-bold text-muted text-uppercase mb-3 d-flex align-items-center gap-2" style="font-size: 0.75rem; letter-spacing: 0.5px;">
-                                <i data-lucide="package" style="width: 14px; height: 14px;"></i> {{ t "stock_unit_management" .Lang }}
+                            <h6 class="fw-bold text-muted text-uppercase mb-3 d-flex align-items-center gap-2"
+                                style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                <i data-lucide="package" style="width: 14px; height: 14px;"></i> {{ t
+                                "stock_unit_management" .Lang }}
                             </h6>
                             <div class="row g-3">
                                 <div class="col-md-3">
                                     <label class="form-label small fw-bold text-muted">{{ t "main_unit" .Lang }}</label>
-                                    <select name="unit" id="unit" class="form-select rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" required onchange="toggleItemsPerUnit()">
+                                    <select name="unit" id="unit"
+                                        class="form-select rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50"
+                                        required onchange="toggleItemsPerUnit()">
                                         <option value="">{{ t "select_unit" .Lang }}</option>
                                         <option value="Box">{{ t "unit_box" .Lang }}</option>
                                         <option value="Strip">{{ t "unit_strip" .Lang }}</option>
@@ -365,8 +494,11 @@
                                 </div>
                                 <div class="col-md-3">
                                     <div id="baseUnitWrapper" style="display: none;">
-                                        <label class="form-label small fw-bold text-muted">{{ t "base_unit" .Lang }}</label>
-                                        <select name="base_unit" id="baseUnit" class="form-select rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" onchange="updateTotalLabel(); updateUnitLabels();">
+                                        <label class="form-label small fw-bold text-muted">{{ t "base_unit" .Lang
+                                            }}</label>
+                                        <select name="base_unit" id="baseUnit"
+                                            class="form-select rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50"
+                                            onchange="updateTotalLabel(); updateUnitLabels();">
                                             <option value="">{{ t "select_base_unit" .Lang }}</option>
                                             <option value="Strip">{{ t "unit_strip" .Lang }}</option>
                                             <option value="Pcs">{{ t "unit_pcs_smallest" .Lang }}</option>
@@ -375,43 +507,64 @@
                                 </div>
                                 <div class="col-md-3">
                                     <div id="itemsPerUnitWrapper" style="display: none;">
-                                        <label class="form-label small fw-bold text-muted">{{ t "items_per_unit_isi" .Lang }}</label>
-                                        <input type="number" name="items_per_unit" id="itemsPerUnit" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" placeholder="1" min="1" oninput="updateTotalLabel()">
-                                        <small class="text-muted" style="font-size: 0.7rem;">{{ t "items_per_unit_help" .Lang }}</small>
+                                        <label class="form-label small fw-bold text-muted">{{ t "items_per_unit_isi"
+                                            .Lang }}</label>
+                                        <input type="number" name="items_per_unit" id="itemsPerUnit"
+                                            class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50"
+                                            placeholder="1" min="1" oninput="updateTotalLabel()">
+                                        <small class="text-muted" style="font-size: 0.7rem;">{{ t "items_per_unit_help"
+                                            .Lang }}</small>
                                     </div>
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label small fw-bold text-muted" id="labelMinStock">{{ t "min_stock_alert_pcs" .Lang }} <span class="unit-suffix">(Pcs)</span></label>
-                                    <input type="number" name="min_stock" id="minStock" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" placeholder="10" required min="0">
+                                    <label class="form-label small fw-bold text-muted" id="labelMinStock">{{ t
+                                        "min_stock_alert_pcs" .Lang }} <span class="unit-suffix">(Pcs)</span></label>
+                                    <input type="number" name="min_stock" id="minStock"
+                                        class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50"
+                                        placeholder="10" required min="0">
                                 </div>
                             </div>
                         </div>
 
                         <!-- Section: Inventaris Awal & Batch -->
                         <div class="col-12 mt-4" id="batchSectionWrapper">
-                            <div class="p-3 rounded-4 bg-light bg-opacity-50 border border-dashed border-primary border-opacity-25">
-                                <h6 class="fw-bold text-primary text-uppercase mb-3 d-flex align-items-center gap-2" style="font-size: 0.75rem; letter-spacing: 0.5px;">
-                                    <i data-lucide="layers" style="width: 14px; height: 14px;"></i> {{ t "initial_inventory_batch" .Lang }}
+                            <div
+                                class="p-3 rounded-4 bg-light bg-opacity-50 border border-dashed border-primary border-opacity-25">
+                                <h6 class="fw-bold text-primary text-uppercase mb-3 d-flex align-items-center gap-2"
+                                    style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                    <i data-lucide="layers" style="width: 14px; height: 14px;"></i> {{ t
+                                    "initial_inventory_batch" .Lang }}
                                 </h6>
                                 <div class="row g-3 align-items-end">
                                     <div class="col-md-4">
-                                        <label class="form-label small fw-bold text-muted">{{ t "initial_quantity_units" .Lang }}</label>
-                                        <input type="number" name="initial_stock" id="initialStock" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-white" placeholder="0" min="0" required>
+                                        <label class="form-label small fw-bold text-muted">{{ t "initial_quantity_units"
+                                            .Lang }}</label>
+                                        <input type="number" name="initial_stock" id="initialStock"
+                                            class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-white"
+                                            placeholder="0" min="0" required>
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label small fw-bold text-muted">{{ t "batch_no" .Lang }}</label>
-                                        <input type="text" name="batch_number" id="batchNumber" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-white" placeholder="{{ t `batch_no` .Lang }}" required>
+                                        <label class="form-label small fw-bold text-muted">{{ t "batch_no" .Lang
+                                            }}</label>
+                                        <input type="text" name="batch_number" id="batchNumber"
+                                            class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-white"
+                                            placeholder="{{ t `batch_no` .Lang }}" required>
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label small fw-bold text-muted">{{ t "expiry_date" .Lang }}</label>
-                                        <input type="date" name="expiry_date" id="expiryDate" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-white" required>
+                                        <label class="form-label small fw-bold text-muted">{{ t "expiry_date" .Lang
+                                            }}</label>
+                                        <input type="date" name="expiry_date" id="expiryDate"
+                                            class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-white"
+                                            required>
                                     </div>
                                     <div class="col-12 mt-3 d-flex justify-content-between align-items-center">
                                         <div class="text-muted small">
-                                            <i data-lucide="alert-circle" style="width: 14px; height: 14px;" class="me-1"></i>
+                                            <i data-lucide="alert-circle" style="width: 14px; height: 14px;"
+                                                class="me-1"></i>
                                             <span class="fst-italic">{{ t "initial_batch_help" .Lang }}</span>
                                         </div>
-                                        <div class="bg-primary bg-opacity-10 text-primary px-3 py-1 rounded-pill fw-bold small">
+                                        <div
+                                            class="bg-primary bg-opacity-10 text-primary px-3 py-1 rounded-pill fw-bold small">
                                             {{ t "total_stock" .Lang }}: <span id="totalAddedLabel">0</span>
                                         </div>
                                     </div>
@@ -421,8 +574,11 @@
                     </div>
 
                     <div class="modal-footer border-0 p-0 mt-4 pt-4 d-flex justify-content-end gap-2">
-                        <button type="button" class="btn btn-light px-4 py-2 rounded-3 fw-bold border-0" data-bs-dismiss="modal">{{ t "cancel" .Lang }}</button>
-                        <button type="submit" id="productSubmitBtn" class="btn btn-primary px-5 py-2 rounded-3 fw-bold shadow-sm" style="background-color: var(--pos-primary, #f97316); border-color: var(--pos-primary, #f97316);">
+                        <button type="button" class="btn btn-light px-4 py-2 rounded-3 fw-bold border-0"
+                            data-bs-dismiss="modal">{{ t "cancel" .Lang }}</button>
+                        <button type="submit" id="productSubmitBtn"
+                            class="btn btn-primary px-5 py-2 rounded-3 fw-bold shadow-sm"
+                            style="background-color: var(--pos-primary, #f97316); border-color: var(--pos-primary, #f97316);">
                             <span id="productSubmitBtnText">{{ t "save_changes" .Lang }}</span>
                         </button>
                     </div>
@@ -446,49 +602,68 @@
             <div class="modal-body p-4">
                 <div class="alert alert-info border-0 rounded-3 mb-4 d-flex align-items-center gap-2">
                     <i data-lucide="info" style="width: 18px; height: 18px;"></i>
-                    <span class="small fw-medium">{{ t "adding_stock_for" .Lang }}: <strong id="stockProductName" class="text-dark"></strong></span>
+                    <span class="small fw-medium">{{ t "adding_stock_for" .Lang }}: <strong id="stockProductName"
+                            class="text-dark"></strong></span>
                 </div>
                 <!-- Need to add a new route: /api/products/batch/create or similar to handle this form submission -->
                 <form id="addStockForm" onsubmit="submitAddStock(event)">
                     <input type="hidden" name="csrf_token" id="stockCsrf" value="{{ .CSRFToken }}">
                     <input type="hidden" name="product_id" id="stockProductId" value="">
-                    
+
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small fw-bold text-muted">{{ t "quantity_incoming" .Lang }} <span class="text-danger">*</span></label>
+                            <label class="form-label small fw-bold text-muted">{{ t "quantity_incoming" .Lang }} <span
+                                    class="text-danger">*</span></label>
                             <div class="input-group">
-                                <input type="number" id="stockQuantity" name="quantity" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" placeholder="0" min="1" required>
+                                <input type="number" id="stockQuantity" name="quantity"
+                                    class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50"
+                                    placeholder="0" min="1" required>
                             </div>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small fw-bold text-muted">{{ t "batch_no" .Lang }} <span class="text-danger">*</span></label>
-                            <input type="text" id="stockBatchNumber" name="batch_number" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" placeholder="{{ t `batch_no` .Lang }}" required>
+                            <label class="form-label small fw-bold text-muted">{{ t "batch_no" .Lang }} <span
+                                    class="text-danger">*</span></label>
+                            <input type="text" id="stockBatchNumber" name="batch_number"
+                                class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50"
+                                placeholder="{{ t `batch_no` .Lang }}" required>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small fw-bold text-muted">{{ t "expiry_date" .Lang }} <span class="text-danger">*</span></label>
-                            <input type="date" id="stockExpiryDate" name="expiry_date" class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" required>
+                            <label class="form-label small fw-bold text-muted">{{ t "expiry_date" .Lang }} <span
+                                    class="text-danger">*</span></label>
+                            <input type="date" id="stockExpiryDate" name="expiry_date"
+                                class="form-control rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50"
+                                required>
                         </div>
-                        
+
                         <!-- Additional fields needed for JSON payload -->
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold text-muted">{{ t "purchase_price" .Lang }} <small>(per Unit)</small></label>
+                            <label class="form-label small fw-bold text-muted">{{ t "purchase_price" .Lang }}
+                                <small>(per Unit)</small></label>
                             <div class="input-group">
-                                <span class="input-group-text bg-light border-light-subtle rounded-start-3 small fw-bold">Rp</span>
-                                <input type="number" id="stockPurchasePrice" name="purchase_price" class="form-control rounded-end-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" value="0" required>
+                                <span
+                                    class="input-group-text bg-light border-light-subtle rounded-start-3 small fw-bold">Rp</span>
+                                <input type="number" id="stockPurchasePrice" name="purchase_price"
+                                    class="form-control rounded-end-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50"
+                                    value="0" required>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold text-muted">{{ t "selling_price" .Lang }} <small>(per Unit)</small></label>
+                            <label class="form-label small fw-bold text-muted">{{ t "selling_price" .Lang }} <small>(per
+                                    Unit)</small></label>
                             <div class="input-group">
-                                <span class="input-group-text bg-light border-light-subtle rounded-start-3 small fw-bold">Rp</span>
-                                <input type="number" id="stockSellingPrice" name="selling_price" class="form-control rounded-end-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" value="0" required>
+                                <span
+                                    class="input-group-text bg-light border-light-subtle rounded-start-3 small fw-bold">Rp</span>
+                                <input type="number" id="stockSellingPrice" name="selling_price"
+                                    class="form-control rounded-end-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50"
+                                    value="0" required>
                             </div>
                         </div>
 
                         <div class="col-12 mt-4">
                             <div class="bg-warning bg-opacity-10 rounded-3 p-3">
                                 <div class="form-check">
-                                    <input class="form-check-input shadow-none" type="checkbox" id="confirmAddStock" required>
+                                    <input class="form-check-input shadow-none" type="checkbox" id="confirmAddStock"
+                                        required>
                                     <label class="form-check-label small text-dark" for="confirmAddStock">
                                         {{ t "confirm_add_stock_msg" .Lang }}
                                     </label>
@@ -498,8 +673,11 @@
                     </div>
 
                     <div class="modal-footer border-0 p-0 mt-4 pt-4 d-flex justify-content-end gap-2">
-                        <button type="button" class="btn btn-light px-4 py-2 rounded-3 fw-bold border-0" data-bs-dismiss="modal">{{ t "cancel" .Lang }}</button>
-                        <button type="submit" id="saveStockBtn" class="btn btn-primary px-5 py-2 rounded-3 fw-bold shadow-sm" style="background-color: var(--pos-primary, #f97316); border-color: var(--pos-primary, #f97316);">
+                        <button type="button" class="btn btn-light px-4 py-2 rounded-3 fw-bold border-0"
+                            data-bs-dismiss="modal">{{ t "cancel" .Lang }}</button>
+                        <button type="submit" id="saveStockBtn"
+                            class="btn btn-primary px-5 py-2 rounded-3 fw-bold shadow-sm"
+                            style="background-color: var(--pos-primary, #f97316); border-color: var(--pos-primary, #f97316);">
                             <span id="saveStockBtnText">{{ t "save_changes" .Lang }}</span>
                         </button>
                     </div>
@@ -510,7 +688,8 @@
 </div>
 
 <!-- Product Details Modal -->
-<div class="modal fade" id="productDetailsModal" tabindex="-1" aria-labelledby="productDetailsModalLabel" aria-hidden="true">
+<div class="modal fade" id="productDetailsModal" tabindex="-1" aria-labelledby="productDetailsModalLabel"
+    aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
             <div class="modal-header border-0 bg-light p-4">
@@ -533,7 +712,8 @@
                     <div class="col-md-6">
                         <div class="p-3 bg-light rounded-4 h-100">
                             <h6 class="fw-bold mb-3 d-flex align-items-center gap-2 text-muted">
-                                <i data-lucide="info" style="width:16px; height:16px;"></i> {{ t "basic_information" .Lang }}
+                                <i data-lucide="info" style="width:16px; height:16px;"></i> {{ t "basic_information"
+                                .Lang }}
                             </h6>
                             <table class="table table-borderless table-sm small mb-0">
                                 <tbody>
@@ -598,7 +778,8 @@
                     <!-- Batches Table -->
                     <div class="col-12 mt-4">
                         <h6 class="fw-bold mb-3 d-flex align-items-center gap-2 text-muted">
-                            <i data-lucide="layers" style="width:16px; height:16px;"></i> {{ t "batch_inventory" .Lang }}
+                            <i data-lucide="layers" style="width:16px; height:16px;"></i> {{ t "batch_inventory" .Lang
+                            }}
                         </h6>
                         <div class="table-responsive bg-white rounded-3 shadow-sm border">
                             <table class="table table-hover table-sm mb-0">
@@ -620,7 +801,8 @@
                 </div>
             </div>
             <div class="modal-footer border-0 p-4 bg-light">
-                <button type="button" class="btn btn-secondary px-4 py-2 rounded-3 fw-bold" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary px-4 py-2 rounded-3 fw-bold"
+                    data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -651,25 +833,25 @@
             },
             body: JSON.stringify({ id: parseInt(id) })
         })
-        .then(r => r.json())
-        .then(d => {
-            if (d.status === 'success') {
-                if (window.showToast) window.showToast('{{ t "approved_text" .Lang }}: ' + name, 'success');
-                setTimeout(() => window.location.reload(), 1200);
-            } else {
-                throw new Error(d.error || 'Failed to approve product');
-            }
-        })
-        .catch(err => {
-            console.error('Approve error:', err);
-            if (window.showToast) window.showToast(err.message, 'error');
-        });
+            .then(r => r.json())
+            .then(d => {
+                if (d.status === 'success') {
+                    if (window.showToast) window.showToast('{{ t "approved_text" .Lang }}: ' + name, 'success');
+                    setTimeout(() => window.location.reload(), 1200);
+                } else {
+                    throw new Error(d.error || 'Failed to approve product');
+                }
+            })
+            .catch(err => {
+                console.error('Approve error:', err);
+                if (window.showToast) window.showToast(err.message, 'error');
+            });
     }
 
     function toggleProductStatus(id, name, currentStatus) {
         const isActivating = currentStatus === 'inactive';
         const confirmMsg = isActivating ? '{{ t "confirm_activate_product" .Lang }}' : '{{ t "confirm_deactivate_product" .Lang }}';
-        
+
         if (!confirm(confirmMsg)) return;
 
         fetch('/api/products/toggle-status', {
@@ -680,26 +862,26 @@
             },
             body: JSON.stringify({ id: parseInt(id) })
         })
-        .then(r => r.json())
-        .then(d => {
-            if (d.status === 'success') {
-                const toastMsg = isActivating ? '{{ t "product_activated" .Lang }}' : '{{ t "product_deactivated" .Lang }}';
-                if (window.showToast) window.showToast(toastMsg, 'success');
-                setTimeout(() => window.location.reload(), 1200);
-            } else {
-                throw new Error(d.error || 'Failed to toggle status');
-            }
-        })
-        .catch(err => {
-            console.error('Status toggle error:', err);
-            if (window.showToast) window.showToast(err.message, 'error');
-        });
+            .then(r => r.json())
+            .then(d => {
+                if (d.status === 'success') {
+                    const toastMsg = isActivating ? '{{ t "product_activated" .Lang }}' : '{{ t "product_deactivated" .Lang }}';
+                    if (window.showToast) window.showToast(toastMsg, 'success');
+                    setTimeout(() => window.location.reload(), 1200);
+                } else {
+                    throw new Error(d.error || 'Failed to toggle status');
+                }
+            })
+            .catch(err => {
+                console.error('Status toggle error:', err);
+                if (window.showToast) window.showToast(err.message, 'error');
+            });
     }
 
     function openAddModal() {
         const form = document.getElementById('productForm');
         if (!form) return;
-        
+
         form.reset();
         document.getElementById('productId').value = '';
         document.getElementById('productName').value = '';
@@ -729,11 +911,11 @@
         document.getElementById('modalTitleText').innerText = '{{ t "add_new_product" .Lang }}';
         document.getElementById('modalIcon').setAttribute('data-lucide', 'plus-circle');
         form.setAttribute('hx-post', '/api/products/create');
-        
+
         if (typeof htmx !== 'undefined') {
             htmx.process(form);
         }
-        
+
         const modal = getProductModal();
         if (modal) {
             modal.show();
@@ -746,16 +928,16 @@
     function openAddStockModal(id, name) {
         const modalEl = document.getElementById('addStockModal');
         if (!modalEl) return;
-        
+
         // Reset form
         const form = document.getElementById('addStockForm');
         if (form) form.reset();
-        
+
         // Set values
         document.getElementById('stockProductId').value = id;
         document.getElementById('stockProductName').innerText = name;
         document.getElementById('confirmAddStock').checked = false;
-        
+
         let modal = bootstrap.Modal.getInstance(modalEl);
         if (!modal) {
             modal = new bootstrap.Modal(modalEl);
@@ -765,13 +947,13 @@
 
     function submitAddStock(e) {
         e.preventDefault();
-        
+
         const btn = document.getElementById('saveStockBtn');
         const btnText = document.getElementById('saveStockBtnText');
         const csrfToken = document.getElementById('stockCsrf').value;
         btn.disabled = true;
         btnText.innerText = '{{ t `js_saving` .Lang }}';
-        
+
         const payload = {
             product_id: parseInt(document.getElementById('stockProductId').value),
             batch_number: document.getElementById('stockBatchNumber').value,
@@ -790,65 +972,65 @@
             },
             body: JSON.stringify(payload)
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                if (window.showToast) window.showToast(data.message || 'Stock added successfully', 'success');
-                const modal = bootstrap.Modal.getInstance(document.getElementById('addStockModal'));
-                if (modal) modal.hide();
-                setTimeout(() => window.location.reload(), 1500);
-            } else {
-                throw new Error(data.error || 'Failed to add stock');
-            }
-        })
-        .catch(err => {
-            console.error('Error adding stock:', err);
-            if (window.showToast) window.showToast(err.message, 'error');
-            btn.disabled = false;
-            btnText.innerText = '{{ t `save_changes` .Lang }}';
-        });
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (window.showToast) window.showToast(data.message || 'Stock added successfully', 'success');
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addStockModal'));
+                    if (modal) modal.hide();
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    throw new Error(data.error || 'Failed to add stock');
+                }
+            })
+            .catch(err => {
+                console.error('Error adding stock:', err);
+                if (window.showToast) window.showToast(err.message, 'error');
+                btn.disabled = false;
+                btnText.innerText = '{{ t `save_changes` .Lang }}';
+            });
     }
 
     function openDetailsModal(id) {
         const modalEl = document.getElementById('productDetailsModal');
         if (!modalEl) return;
-        
+
         const loading = document.getElementById('detailsLoading');
         const content = document.getElementById('detailsContent');
-        
+
         loading.classList.remove('d-none');
         content.classList.add('d-none');
-        
+
         let modal = bootstrap.Modal.getInstance(modalEl);
         if (!modal) modal = new bootstrap.Modal(modalEl);
         modal.show();
-        
+
         fetch(`/api/products/details?id=${id}`)
             .then(response => response.json())
             .then(res => {
                 if (res.status === 'success') {
                     const p = res.data.product;
                     const batches = res.data.batches || [];
-                    
+
                     document.getElementById('detailName').innerText = p.name;
                     document.getElementById('detailSku').innerText = p.sku_code || '-';
                     document.getElementById('detailCategory').innerText = p.category;
                     document.getElementById('detailTherapeuticClass').innerText = p.therapeutic_class || '-';
                     document.getElementById('detailStorageLocation').innerText = p.storage_location || '-';
-                    
-                    document.getElementById('detailPurchasePrice').innerText = `Rp ${p.purchase_price}`;
-                    document.getElementById('detailSellingPrice').innerText = `Rp ${p.selling_price}`;
+
+                    document.getElementById('detailPurchasePrice').innerText = formatRupiah(p.purchase_price);
+                    document.getElementById('detailSellingPrice').innerText = formatRupiah(p.selling_price);
                     document.getElementById('detailUnit').innerText = p.unit;
                     document.getElementById('detailItemsPerUnit').innerText = `${p.items_per_unit} ${p.base_unit || 'Pcs'}/${p.unit}`;
                     document.getElementById('detailTotalStock').innerText = `${p.total_stock} Pcs`;
-                    
+
                     const tbody = document.getElementById('detailBatchesBody');
                     tbody.innerHTML = '';
                     if (batches.length === 0) {
                         tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-3 small">No batches found</td></tr>`;
                     } else {
                         batches.forEach(b => {
-                            const statusBadge = b.is_verified 
+                            const statusBadge = b.is_verified
                                 ? `<span class="badge bg-success bg-opacity-10 text-success border-0">Verified</span>`
                                 : `<span class="badge bg-warning bg-opacity-10 text-warning border-0">Pending</span>`;
                             const row = `
@@ -863,7 +1045,7 @@
                             tbody.insertAdjacentHTML('beforeend', row);
                         });
                     }
-                    
+
                     loading.classList.add('d-none');
                     content.classList.remove('d-none');
                 } else {
@@ -888,7 +1070,7 @@
         document.getElementById('modalTitleText').innerText = '{{ t "edit_product" .Lang }}';
         document.getElementById('modalIcon').setAttribute('data-lucide', 'edit');
         form.setAttribute('hx-post', '/api/products/update');
-        
+
         if (typeof htmx !== 'undefined') {
             htmx.process(form);
         }
@@ -905,22 +1087,22 @@
                     document.getElementById('purchasePrice').value = p.purchase_price || '0';
                     document.getElementById('sellingPrice').value = p.selling_price || '0';
                     document.getElementById('unit').value = p.unit || '';
-                    
+
                     toggleItemsPerUnit();
-                    
+
                     if (document.getElementById('baseUnit')) {
                         document.getElementById('baseUnit').value = p.base_unit || '';
                     }
                     document.getElementById('itemsPerUnit').value = p.items_per_unit || '1';
                     document.getElementById('minStock').value = p.min_stock || '0';
-                   if(document.getElementById('purchasePriceDisplay')) {
+                    if (document.getElementById('purchasePriceDisplay')) {
                         document.getElementById('purchasePriceDisplay').value = formatRupiahInput((p.purchase_price || 0).toString());
                     }
-                    if(document.getElementById('sellingPriceDisplay')) {
+                    if (document.getElementById('sellingPriceDisplay')) {
                         document.getElementById('sellingPriceDisplay').value = formatRupiahInput((p.selling_price || 0).toString());
                     }
                 }
-                
+
                 const modal = getProductModal();
                 if (modal) {
                     modal.show();
@@ -941,7 +1123,7 @@
         const baseUnit = document.getElementById('baseUnit');
         const itemsWrapper = document.getElementById('itemsPerUnitWrapper');
         const itemsInput = document.getElementById('itemsPerUnit');
-        
+
         if (unit === 'Box') {
             if (baseUnitWrapper) baseUnitWrapper.style.display = 'block';
             if (baseUnit) {
@@ -1004,7 +1186,7 @@
         const baseUnit = (baseUnitEl && baseUnitEl.value) ? baseUnitEl.value : '';
         const unit = (unitEl && unitEl.value) ? unitEl.value : '';
         const effectiveUnit = baseUnit || unit || 'Pcs';
-        
+
         document.querySelectorAll('.unit-suffix').forEach(el => {
             if (el.parentElement.id === 'labelMinStock') {
                 el.innerText = `(${effectiveUnit})`;
@@ -1019,10 +1201,10 @@
         const itemsPerUnit = parseInt(document.getElementById('itemsPerUnit').value) || 1;
         const baseUnitEl = document.getElementById('baseUnit');
         const unitEl = document.getElementById('unit');
-        
+
         const baseUnit = (baseUnitEl && baseUnitEl.value) ? baseUnitEl.value : 'Pcs';
         const unit = (unitEl && unitEl.value) ? unitEl.value : 'Pcs';
-        
+
         const label = document.getElementById('totalAddedLabel');
         if (label) {
             if (unit === 'Box' || unit === 'Strip') {
@@ -1049,21 +1231,30 @@
         return rupiah;
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         const purchaseDisplay = document.getElementById('purchasePriceDisplay');
         const sellingDisplay = document.getElementById('sellingPriceDisplay');
         const purchaseActual = document.getElementById('purchasePrice');
         const sellingActual = document.getElementById('sellingPrice');
 
-        if(purchaseDisplay) {
-            purchaseDisplay.addEventListener('input', function(e) {
+        // Hide purchase price field if not admin
+        const purchaseContainer = document.getElementById('purchasePriceContainer');
+        if (purchaseContainer) {
+            const currentUserRole = '{{ .CurrentUser.Role }}';
+            if (currentUserRole !== 'admin') {
+                purchaseContainer.classList.add('d-none');
+            }
+        }
+
+        if (purchaseDisplay) {
+            purchaseDisplay.addEventListener('input', function (e) {
                 this.value = formatRupiahInput(this.value);
                 purchaseActual.value = this.value.replace(/\./g, '');
             });
         }
 
-        if(sellingDisplay) {
-            sellingDisplay.addEventListener('input', function(e) {
+        if (sellingDisplay) {
+            sellingDisplay.addEventListener('input', function (e) {
                 this.value = formatRupiahInput(this.value);
                 sellingActual.value = this.value.replace(/\./g, '');
             });
@@ -1077,7 +1268,7 @@
     }
 
     // Handle HTMX response for modal closing
-    document.body.addEventListener('htmx:beforeOnLoad', function(evt) {
+    document.body.addEventListener('htmx:beforeOnLoad', function (evt) {
         // This is now handled by hx-on::after-request on the form itself
         // but keeping this for any other responses that might need it
         if (evt.detail.xhr.getResponseHeader('HX-Location') || evt.detail.xhr.getResponseHeader('HX-Refresh')) {
@@ -1091,7 +1282,7 @@
         const filter = input.value.toUpperCase();
         const list = document.getElementById('therapeuticList');
         const items = list.getElementsByTagName('li');
-        
+
         let visibleCount = 0;
         for (let i = 0; i < items.length; i++) {
             const txtValue = items[i].textContent || items[i].innerText;
@@ -1102,7 +1293,7 @@
                 items[i].style.display = "none";
             }
         }
-        
+
         // Show dropdown if typing and there are matches
         if (filter.length > 0 && visibleCount > 0) {
             const dropdown = bootstrap.Dropdown.getOrCreateInstance(input);

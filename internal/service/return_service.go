@@ -143,7 +143,7 @@ func (s *returnService) ProcessReturn(userID int, saleID int, reason string, ite
 	}
 
 	// 6. Log Activity
-	if err := logRepo.Log(userID, fmt.Sprintf("Processed Return #%d for Sale #%d - Total Refund: Rp %.2f", returnID, saleID, totalRefund)); err != nil {
+	if err := logRepo.Log(userID, fmt.Sprintf("Processed Return #%d for Sale #%d - Total Refund: Rp %.0f", returnID, saleID, totalRefund)); err != nil {
 		return 0, err
 	}
 

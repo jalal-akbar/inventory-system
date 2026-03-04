@@ -1,5 +1,6 @@
 {{ define "inventory/details_modal.html" }}
-<div class="modal fade" id="productDetailsModal" tabindex="-1" aria-labelledby="productDetailsModalLabel" aria-hidden="true">
+<div class="modal fade" id="productDetailsModal" tabindex="-1" aria-labelledby="productDetailsModalLabel"
+    aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
             <div class="modal-header border-0 bg-light p-4">
@@ -13,13 +14,18 @@
                 <!-- Tabs Navigation -->
                 <ul class="nav nav-tabs border-bottom px-4 pt-3 bg-light" id="productDetailTabs" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active fw-bold border-0 bg-transparent py-2 pb-3 position-relative" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-pane" type="button" role="tab" style="color: var(--text-main);">
+                        <button class="nav-link active fw-bold border-0 bg-transparent py-2 pb-3 position-relative"
+                            id="info-tab" data-bs-toggle="tab" data-bs-target="#info-pane" type="button" role="tab"
+                            style="color: var(--text-main);">
                             {{ t "product_info" .Lang }}
                             <div class="active-indicator"></div>
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link fw-bold border-0 bg-transparent py-2 pb-3 position-relative" id="ledger-tab" data-bs-toggle="tab" data-bs-target="#ledger-pane" type="button" role="tab" style="color: var(--text-muted);" onclick="loadStockLedger('{{ .Product.id }}', '{{ .Product.name }}')">
+                        <button class="nav-link fw-bold border-0 bg-transparent py-2 pb-3 position-relative"
+                            id="ledger-tab" data-bs-toggle="tab" data-bs-target="#ledger-pane" type="button" role="tab"
+                            style="color: var(--text-muted);"
+                            onclick="loadStockLedger('{{ .Product.id }}', '{{ .Product.name }}')">
                             {{ t "stock_ledger" .Lang }}
                             <div class="active-indicator"></div>
                         </button>
@@ -34,7 +40,8 @@
                             <div class="col-md-6">
                                 <div class="p-3 bg-light rounded-4 h-100 border">
                                     <h6 class="fw-bold mb-3 d-flex align-items-center gap-2 text-muted">
-                                        <i data-lucide="info" style="width:16px; height:16px;"></i> {{ t "basic_information" .Lang }}
+                                        <i data-lucide="info" style="width:16px; height:16px;"></i> {{ t
+                                        "basic_information" .Lang }}
                                     </h6>
                                     <table class="table table-borderless table-sm small mb-0">
                                         <tbody>
@@ -52,11 +59,13 @@
                                             </tr>
                                             <tr>
                                                 <td class="text-muted">{{ t "therapeutic_class" .Lang }}</td>
-                                                <td class="fw-bold text-dark">{{ if .Product.therapeutic_class }}{{ .Product.therapeutic_class }}{{ else }}-{{ end }}</td>
+                                                <td class="fw-bold text-dark">{{ if .Product.therapeutic_class }}{{
+                                                    .Product.therapeutic_class }}{{ else }}-{{ end }}</td>
                                             </tr>
                                             <tr>
                                                 <td class="text-muted">{{ t "storage_location" .Lang }}</td>
-                                                <td class="fw-bold text-dark">{{ if .Product.storage_location }}{{ .Product.storage_location }}{{ else }}-{{ end }}</td>
+                                                <td class="fw-bold text-dark">{{ if .Product.storage_location }}{{
+                                                    .Product.storage_location }}{{ else }}-{{ end }}</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -74,12 +83,14 @@
                                             {{ if or (eq $.UserRole "admin") (eq $.UserRole "owner") }}
                                             <tr>
                                                 <td class="text-muted w-50">{{ t "purchase_price" .Lang }}</td>
-                                                <td class="fw-bold text-success">Rp {{ formatCurrency .Product.purchase_price }}</td>
+                                                <td class="fw-bold text-success">{{ formatRupiah .Product.purchase_price
+                                                    }}</td>
                                             </tr>
                                             {{ end }}
                                             <tr>
                                                 <td class="text-muted">{{ t "selling_price" .Lang }}</td>
-                                                <td class="fw-bold text-primary">Rp {{ formatCurrency .Product.selling_price }}</td>
+                                                <td class="fw-bold text-primary">{{ formatRupiah .Product.selling_price
+                                                    }}</td>
                                             </tr>
                                             <tr>
                                                 <td class="text-muted">Main Unit</td>
@@ -87,7 +98,9 @@
                                             </tr>
                                             <tr>
                                                 <td class="text-muted">Items per Unit</td>
-                                                <td class="fw-bold text-dark">{{ .Product.items_per_unit }} {{ if .Product.base_unit }}{{ .Product.base_unit }}{{ else }}Pcs{{ end }}/{{ .Product.unit }}</td>
+                                                <td class="fw-bold text-dark">{{ .Product.items_per_unit }} {{ if
+                                                    .Product.base_unit }}{{ .Product.base_unit }}{{ else }}Pcs{{ end
+                                                    }}/{{ .Product.unit }}</td>
                                             </tr>
                                             <tr>
                                                 <td class="text-muted">Total Stock</td>
@@ -101,14 +114,17 @@
                             <!-- Batches Table -->
                             <div class="col-12 mt-2">
                                 <h6 class="fw-bold mb-3 d-flex align-items-center gap-2 text-muted">
-                                    <i data-lucide="layers" style="width:16px; height:16px;"></i> {{ t "batch_inventory" .Lang }}
+                                    <i data-lucide="layers" style="width:16px; height:16px;"></i> {{ t "batch_inventory"
+                                    .Lang }}
                                 </h6>
                                 <div class="table-responsive bg-white rounded-4 border overflow-hidden">
                                     <table class="table table-hover table-sm mb-0">
                                         <thead class="bg-light">
                                             <tr>
-                                                <th class="ps-3 py-2 small fw-bold text-muted">{{ t "batch_no" .Lang }}</th>
-                                                <th class="py-2 small fw-bold text-muted">{{ t "expiry_date" .Lang }}</th>
+                                                <th class="ps-3 py-2 small fw-bold text-muted">{{ t "batch_no" .Lang }}
+                                                </th>
+                                                <th class="py-2 small fw-bold text-muted">{{ t "expiry_date" .Lang }}
+                                                </th>
                                                 <th class="py-2 small fw-bold text-muted">Initial Qty</th>
                                                 <th class="py-2 small fw-bold text-muted">Current Stock</th>
                                                 <th class="py-2 small fw-bold text-muted text-center">Status</th>
@@ -117,34 +133,42 @@
                                         <tbody>
                                             {{ if not .Batches }}
                                             <tr>
-                                                <td colspan="5" class="text-center text-muted py-4 small">{{ t "no_batches_found" .Lang }}</td>
+                                                <td colspan="5" class="text-center text-muted py-4 small">{{ t
+                                                    "no_batches_found" .Lang }}</td>
                                             </tr>
                                             {{ else }}
-                                                {{ range .Batches }}
-                                                <tr>
-                                                    <td class="ps-3 py-2 small fw-medium">{{ .batch_number }}</td>
-                                                    <td class="py-2 small fw-medium">
-                                                        {{ $days := daysUntil .expiry_date }}
-                                                        <span class="{{ if le $days 0 }}text-danger{{ else if lt $days 90 }}text-orange{{ else if lt $days 180 }}text-warning{{ else }}text-dark{{ end }}">
-                                                            {{ formatShortDate .expiry_date }}
-                                                            {{ if le $days 0 }}
-                                                                <br><small class="text-danger fw-bold">{{ t "already_expired" $.Lang }}</small>
-                                                            {{ else if lt $days 180 }}
-                                                                <br><small class="{{ if lt $days 90 }}text-orange{{ else }}text-warning{{ end }} fw-bold">{{ $days }} {{ t "days" $.Lang }}</small>
-                                                            {{ end }}
-                                                        </span>
-                                                    </td>
-                                                    <td class="py-2 small fw-medium">{{ .initial_qty }} {{ $.Product.unit }}</td>
-                                                    <td class="py-2 small fw-bold text-dark">{{ .current_stock }} Pcs</td>
-                                                    <td class="py-2 small text-center">
-                                                        {{ if eq .is_verified 1 }}
-                                                        <span class="badge bg-success bg-opacity-10 text-success border-0 px-2">Verified</span>
-                                                        {{ else }}
-                                                        <span class="badge bg-warning bg-opacity-10 text-warning border-0 px-2">Pending</span>
+                                            {{ range .Batches }}
+                                            <tr>
+                                                <td class="ps-3 py-2 small fw-medium">{{ .batch_number }}</td>
+                                                <td class="py-2 small fw-medium">
+                                                    {{ $days := daysUntil .expiry_date }}
+                                                    <span
+                                                        class="{{ if le $days 0 }}text-danger{{ else if lt $days 90 }}text-orange{{ else if lt $days 180 }}text-warning{{ else }}text-dark{{ end }}">
+                                                        {{ formatShortDate .expiry_date }}
+                                                        {{ if le $days 0 }}
+                                                        <br><small class="text-danger fw-bold">{{ t "already_expired"
+                                                            $.Lang }}</small>
+                                                        {{ else if lt $days 180 }}
+                                                        <br><small
+                                                            class="{{ if lt $days 90 }}text-orange{{ else }}text-warning{{ end }} fw-bold">{{
+                                                            $days }} {{ t "days" $.Lang }}</small>
                                                         {{ end }}
-                                                    </td>
-                                                </tr>
-                                                {{ end }}
+                                                    </span>
+                                                </td>
+                                                <td class="py-2 small fw-medium">{{ .initial_qty }} {{ $.Product.unit }}
+                                                </td>
+                                                <td class="py-2 small fw-bold text-dark">{{ .current_stock }} Pcs</td>
+                                                <td class="py-2 small text-center">
+                                                    {{ if eq .is_verified 1 }}
+                                                    <span
+                                                        class="badge bg-success bg-opacity-10 text-success border-0 px-2">Verified</span>
+                                                    {{ else }}
+                                                    <span
+                                                        class="badge bg-warning bg-opacity-10 text-warning border-0 px-2">Pending</span>
+                                                    {{ end }}
+                                                </td>
+                                            </tr>
+                                            {{ end }}
                                             {{ end }}
                                         </tbody>
                                     </table>
@@ -159,21 +183,25 @@
                         <div class="row g-3 mb-4 align-items-end">
                             <div class="col-md-5">
                                 <label class="form-label small fw-bold text-muted">{{ t "start_date" .Lang }}</label>
-                                <input type="date" id="modalLedgerStartDate" class="form-control rounded-3 border-light shadow-none bg-light bg-opacity-50">
+                                <input type="date" id="modalLedgerStartDate"
+                                    class="form-control rounded-3 border-light shadow-none bg-light bg-opacity-50">
                             </div>
                             <div class="col-md-5">
                                 <label class="form-label small fw-bold text-muted">{{ t "end_date" .Lang }}</label>
-                                <input type="date" id="modalLedgerEndDate" class="form-control rounded-3 border-light shadow-none bg-light bg-opacity-50">
+                                <input type="date" id="modalLedgerEndDate"
+                                    class="form-control rounded-3 border-light shadow-none bg-light bg-opacity-50">
                             </div>
                             <div class="col-md-2">
-                                <button type="button" class="btn btn-dark w-100 rounded-3 fw-bold py-2" onclick="refreshModalLedger('{{ .Product.id }}')">
+                                <button type="button" class="btn btn-dark w-100 rounded-3 fw-bold py-2"
+                                    onclick="refreshModalLedger('{{ .Product.id }}')">
                                     <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
                                 </button>
                             </div>
                         </div>
 
                         <!-- Starting Balance -->
-                        <div class="d-flex justify-content-between align-items-center p-3 bg-primary bg-opacity-10 rounded-4 mb-4">
+                        <div
+                            class="d-flex justify-content-between align-items-center p-3 bg-primary bg-opacity-10 rounded-4 mb-4">
                             <div class="d-flex align-items-center gap-2 text-primary">
                                 <i data-lucide="history" style="width: 20px; height: 20px;"></i>
                                 <span class="fw-bold small text-uppercase">{{ t "starting_balance" .Lang }}</span>
@@ -190,11 +218,16 @@
                             <table class="table table-hover align-middle mb-0">
                                 <thead class="bg-light">
                                     <tr>
-                                        <th class="ps-4 py-3 text-muted small fw-bold text-uppercase">{{ t "date" .Lang }}</th>
-                                        <th class="py-3 text-muted small fw-bold text-uppercase">{{ t "description" .Lang }}</th>
-                                        <th class="py-3 text-muted small fw-bold text-uppercase text-center">{{ t "in_caps" .Lang }}</th>
-                                        <th class="py-3 text-muted small fw-bold text-uppercase text-center">{{ t "out_caps" .Lang }}</th>
-                                        <th class="pe-4 py-3 text-muted small fw-bold text-uppercase text-end">{{ t "balance" .Lang }}</th>
+                                        <th class="ps-4 py-3 text-muted small fw-bold text-uppercase">{{ t "date" .Lang
+                                            }}</th>
+                                        <th class="py-3 text-muted small fw-bold text-uppercase">{{ t "description"
+                                            .Lang }}</th>
+                                        <th class="py-3 text-muted small fw-bold text-uppercase text-center">{{ t
+                                            "in_caps" .Lang }}</th>
+                                        <th class="py-3 text-muted small fw-bold text-uppercase text-center">{{ t
+                                            "out_caps" .Lang }}</th>
+                                        <th class="pe-4 py-3 text-muted small fw-bold text-uppercase text-end">{{ t
+                                            "balance" .Lang }}</th>
                                     </tr>
                                 </thead>
                                 <tbody id="modalLedgerTableBody">
@@ -209,6 +242,7 @@
                 .nav-tabs .nav-link.active {
                     color: var(--primary-color) !important;
                 }
+
                 .nav-tabs .nav-link .active-indicator {
                     position: absolute;
                     bottom: 0;
@@ -219,24 +253,26 @@
                     border-radius: 3px 3px 0 0;
                     display: none;
                 }
+
                 .nav-tabs .nav-link.active .active-indicator {
                     display: block;
                 }
             </style>
             <div class="modal-footer border-0 p-4 bg-light">
-                <button type="button" class="btn btn-secondary px-4 py-2 rounded-3 fw-bold" data-bs-dismiss="modal">{{ t "close" .Lang }}</button>
+                <button type="button" class="btn btn-secondary px-4 py-2 rounded-3 fw-bold" data-bs-dismiss="modal">{{ t
+                    "close" .Lang }}</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    (function() {
+    (function () {
         // Initialize icons
         if (window.lucide) {
             window.lucide.createIcons();
         }
-        
+
         // Show modal
         var myModal = new bootstrap.Modal(document.getElementById('productDetailsModal'));
         myModal.show();
@@ -268,10 +304,10 @@
         const end = new Date();
         const start = new Date();
         start.setDate(start.getDate() - 30);
-        
+
         document.getElementById('modalLedgerStartDate').value = start.toISOString().split('T')[0];
         document.getElementById('modalLedgerEndDate').value = end.toISOString().split('T')[0];
-        
+
         refreshModalLedger(id);
     }
 
@@ -281,23 +317,23 @@
         const loading = document.getElementById('modalLedgerLoading');
         const content = document.getElementById('modalLedgerTableBody');
         const startBalanceEl = document.getElementById('modalLedgerStartBalance');
-        
+
         loading.classList.remove('d-none');
         content.innerHTML = '';
-        
+
         fetch(`/api/products/ledger?id=${id}&start_date=${start}&end_date=${end}`)
             .then(r => r.json())
             .then(res => {
                 loading.classList.add('d-none');
                 if (res.status === 'success') {
                     startBalanceEl.innerText = `${res.start_balance} Pcs`;
-                    
+
                     let runningBalance = res.start_balance;
                     if (!res.entries || res.entries.length === 0) {
                         content.innerHTML = `<tr><td colspan="5" class="text-center py-5 text-muted fst-italic">No transaction history found</td></tr>`;
                         return;
                     }
-                    
+
                     res.entries.forEach(entry => {
                         const qty = entry.quantity;
                         let inQty = '-', outQty = '-';
@@ -308,7 +344,7 @@
                             outQty = `<span class="fw-bold text-danger">-${qty}</span>`;
                             runningBalance -= qty;
                         }
-                        
+
                         const date = new Date(entry.created_at);
                         const dateStr = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
                         const timeStr = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });

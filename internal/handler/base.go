@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -261,7 +262,39 @@ func (h *BaseHandler) getFuncMap(tz string) template.FuncMap {
 			// Add 12 hours before dividing by 24 to handle DST transitions (23 or 25 hour days) safely
 			return int((hours + 12) / 24)
 		},
+		"formatLogAction": func(action string) string {
+			// Replace old format amounts with proper Indonesian formatting
+			// Pattern: Rp 5000 -> Rp 5.000
+			result := action
+			// Find all Rp amounts and format them properly
+			re := regexp.MustCompile(`Rp (\d+)`)
+			matches := re.FindAllStringSubmatch(action, -1)
+			for _, match := range matches {
+				if len(match) > 1 {
+					amount := match[1]
+					// Format the number with Indonesian thousand separators
+					formatted := formatNumberFromString(amount)
+					result = strings.ReplaceAll(result, "Rp "+amount, "Rp "+formatted)
+				}
+			}
+			return result
+		},
 	}
+}
+
+func formatNumberFromString(s string) string {
+	if s == "" {
+		return "0"
+	}
+	var res []string
+	for i := len(s); i > 0; i -= 3 {
+		start := i - 3
+		if start < 0 {
+			start = 0
+		}
+		res = append([]string{s[start:i]}, res...)
+	}
+	return strings.Join(res, ".")
 }
 
 func (h *BaseHandler) Render(w http.ResponseWriter, r *http.Request, page string, data map[string]interface{}) {
