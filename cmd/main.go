@@ -59,7 +59,7 @@ func main() {
 	authHandler := handler.NewAuthHandler(base, authService)
 	userHandler := handler.NewUserHandler(base, userService, settingService, logRepo)
 	productHandler := handler.NewProductHandler(base, productService, batchService)
-	productApiHandler := handler.NewProductApiHandler(base, productService)
+	productApiHandler := handler.NewProductApiHandler(base, productService, reportService)
 	batchApiHandler := handler.NewBatchApiHandler(base, batchService)
 	inventoryApiHandler := handler.NewInventoryApiHandler(base, batchService)
 	saleApiHandler := handler.NewSaleApiHandler(base, saleService)
@@ -93,6 +93,7 @@ func main() {
 
 	mux.Handle("/products", middleware.RequireAuth(http.HandlerFunc(productHandler.Index)))
 	mux.Handle("/products/check", middleware.RequireAuth(http.HandlerFunc(productHandler.InventoryCheck)))
+	mux.Handle("/products/restock", middleware.RequireAuth(http.HandlerFunc(productHandler.Restock)))
 	mux.Handle("/print-label", middleware.RequireAuth(http.HandlerFunc(productHandler.PrintLabel)))
 	mux.Handle("/settings", middleware.RequireAuth(middleware.RequireAdmin(http.HandlerFunc(userHandler.Settings))))
 	mux.Handle("/pos", middleware.RequireAuth(http.HandlerFunc(posHandler.Index)))
@@ -108,9 +109,14 @@ func main() {
 	mux.Handle("/api/products/update", middleware.RequireAuth(http.HandlerFunc(productApiHandler.Update)))
 	mux.Handle("/api/products/delete", middleware.RequireAuth(middleware.RequireAdmin(http.HandlerFunc(productApiHandler.Delete))))
 	mux.Handle("/api/products/verify", middleware.RequireAuth(middleware.RequireAdmin(http.HandlerFunc(productApiHandler.Verify))))
+	mux.Handle("/api/products/toggle-status", middleware.RequireAuth(middleware.RequireAdmin(http.HandlerFunc(productApiHandler.ToggleStatus))))
 	mux.Handle("/api/products/details", middleware.RequireAuth(http.HandlerFunc(productApiHandler.GetDetails)))
+	mux.Handle("/api/products/bulk-status", middleware.RequireAuth(middleware.RequireAdmin(http.HandlerFunc(productApiHandler.BulkStatus))))
+	mux.Handle("/api/products/bulk-delete", middleware.RequireAuth(middleware.RequireAdmin(http.HandlerFunc(productApiHandler.BulkDelete))))
+	mux.Handle("/api/products/export", middleware.RequireAuth(http.HandlerFunc(productApiHandler.ExportExcel)))
 	mux.Handle("/api/products/pending-count", middleware.RequireAuth(http.HandlerFunc(productApiHandler.GetPendingCount)))
 	mux.Handle("/api/products/search", middleware.RequireAuth(http.HandlerFunc(productApiHandler.Search)))
+	mux.Handle("/api/products/ledger", middleware.RequireAuth(http.HandlerFunc(productApiHandler.GetLedger)))
 
 	// Batches API
 	mux.Handle("/api/batches", middleware.RequireAuth(http.HandlerFunc(batchApiHandler.Index)))

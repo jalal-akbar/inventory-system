@@ -27,6 +27,6 @@ type SaleItem struct {
 	Price        float64 `json:"price"`
 	Subtotal     float64 `json:"subtotal"`
 	SaleUnit     string  `json:"sale_unit"`
-	SubUnit      string  `json:"sub_unit"`
+	BaseUnit      string  `json:"base_unit"`
 	ItemsPerUnit int     `json:"items_per_unit"`
 }

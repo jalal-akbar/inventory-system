@@ -46,7 +46,13 @@ func (h *PosHandler) Search(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	category := r.URL.Query().Get("category")
 
-	products, err := h.productService.SearchProducts(query, category)
+	// In POS, we usually only want active products
+	filter := category
+	if filter == "" {
+		filter = "active"
+	}
+
+	products, err := h.productService.SearchProducts(query, filter)
 	if err != nil {
 		products = []map[string]interface{}{}
 	}

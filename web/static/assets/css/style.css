@@ -752,11 +752,13 @@ h3 {
 }
 
 /* Specific Table borders for Expiry Report */
-.table-expiry th, .table-expiry td {
-    border-right: 1px solid #e2e8f0 !important;
+.table-expiry th,
+.table-expiry td {
+  border-right: 1px solid #e2e8f0 !important;
 }
-.table-expiry th:last-child, .table-expiry td:last-child {
-    border-right: none !important;
+.table-expiry th:last-child,
+.table-expiry td:last-child {
+  border-right: none !important;
 }
 
 /* Tables */
@@ -1083,7 +1085,9 @@ body.sidebar-collapsed .main-wrapper {
 }
 
 .sidebar {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease !important;
+  transition:
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s ease !important;
 }
 
 @media (max-width: 991.98px) {
@@ -1096,4 +1100,33 @@ body.sidebar-collapsed .main-wrapper {
   body.sidebar-collapsed .sidebar {
     transform: translateX(0);
   }
+}
+
+/* Bulk Action Toolbar */
+.bulk-action-toolbar {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.table tr.row-selected {
+  background-color: var(--primary-light) !important;
+}
+
+.table tr.row-selected td {
+  background-color: var(--primary-light) !important;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translate(-50%, 100%);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
+.bulk-action-toolbar:not(.d-none) {
+  animation: slideUp 0.3s ease-out forwards;
 }

@@ -62,16 +62,16 @@
                                     <span class="badge bg-light text-dark border-0">
                                         <!-- If the sale_unit is not the smallest unit, dividing the quantity provides the display amount -->
                                         <!-- Wait, formatPcsToUnit handles formatting to proper units dynamically -->
-                                        {{ if eq .sale_unit .sub_unit }}
+                                        {{ if eq .sale_unit .base_unit }}
                                             {{ .quantity }} {{ .sale_unit }}
                                         {{ else }}
-                                            {{ formatPcsToUnit .quantity .sale_unit .sub_unit .items_per_unit }}
+                                            {{ formatPcsToUnit .quantity .sale_unit .base_unit .items_per_unit }}
                                         {{ end }}
                                     </span>
                                 </td>
                                 <td class="px-3 py-2 text-end small">
                                     <!-- Price is per Pcs, so multiple by items_per_unit if they bought the larger unit -->
-                                    {{ if eq .sale_unit .sub_unit }}
+                                    {{ if eq .sale_unit .base_unit }}
                                         {{ formatRupiah .price }}
                                     {{ else }}
                                         {{ formatRupiah (mul .price .items_per_unit) }}

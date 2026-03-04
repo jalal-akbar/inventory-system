@@ -223,6 +223,44 @@ func (h *BaseHandler) getFuncMap(tz string) template.FuncMap {
 			}
 			return fmt.Sprintf("%d %s", remainingPcs, baseUnitName)
 		},
+		"daysUntil": func(t interface{}) int {
+			var tm time.Time
+			switch v := t.(type) {
+			case time.Time:
+				tm = v
+			case string:
+				if v == "" {
+					return 9999
+				}
+				formats := []string{"2006-01-02", "2006-01-02 15:04:05", time.RFC3339}
+				parsed := false
+				for _, f := range formats {
+					if t, err := time.Parse(f, v); err == nil {
+						tm = t
+						parsed = true
+						break
+					}
+				}
+				if !parsed {
+					return 9999
+				}
+			default:
+				return 9999
+			}
+			if tm.IsZero() {
+				return 9999
+			}
+			// Use timezone-aware start of day to avoid UTC truncation issues
+			now := time.Now().In(loc)
+			nowDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+
+			tm = tm.In(loc)
+			expiryDate := time.Date(tm.Year(), tm.Month(), tm.Day(), 0, 0, 0, 0, loc)
+
+			hours := expiryDate.Sub(nowDate).Hours()
+			// Add 12 hours before dividing by 24 to handle DST transitions (23 or 25 hour days) safely
+			return int((hours + 12) / 24)
+		},
 	}
 }
 
@@ -246,6 +284,7 @@ func (h *BaseHandler) Render(w http.ResponseWriter, r *http.Request, page string
 		pending = &repository.PendingCounts{} // Prevent template panic
 	}
 	data["PendingCounts"] = pending
+	data["PendingCount"] = pending.Unverified
 
 	session := middleware.GetSession(r)
 	data["CurrentUser"] = session
@@ -361,6 +400,7 @@ func (h *BaseHandler) RenderStandalone(w http.ResponseWriter, r *http.Request, p
 		pending = &repository.PendingCounts{} // Prevent template panic
 	}
 	data["PendingCounts"] = pending
+	data["PendingCount"] = pending.Unverified
 
 	session := middleware.GetSession(r)
 	data["CurrentUser"] = session

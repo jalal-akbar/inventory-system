@@ -5,7 +5,7 @@
      data-price="{{ .selling_price }}" 
      data-sku="{{ .sku_code }}" 
      data-unit="{{ .unit }}"
-     data-sub-unit="{{ .sub_unit }}"
+     data-base-unit="{{ .base_unit }}"
      data-stock="{{ .total_stock }}"
      data-items-per-unit="{{ .items_per_unit }}"
      {{ if gt .total_stock 0 }}onclick="addCardToCart(this)"{{ end }}>
@@ -24,7 +24,7 @@
     <div class="price-row">
         <span class="price-tag">Rp {{ formatNumber .selling_price }}</span>
         <span class="stock-badge {{ if le .total_stock 0 }}critical-stock{{ else if lt .total_stock 5 }}low-stock{{ else }}in-stock{{ end }}">
-            {{ formatPcsToUnit .total_stock .unit .sub_unit .items_per_unit }}
+            {{ formatPcsToUnit .total_stock .unit .base_unit .items_per_unit }}
         </span>
     </div>
 </div>

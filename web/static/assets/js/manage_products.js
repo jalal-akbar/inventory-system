@@ -17,7 +17,141 @@ document.addEventListener('DOMContentLoaded', () => {
             results.style.display = 'none';
         }
     });
+
+    // Initialize Bulk Action Toolbar if it doesn't exist
+    initBulkToolbar();
 });
+
+function initBulkToolbar() {
+    if (document.getElementById('bulkActionToolbar')) return;
+    const toolbar = document.createElement('div');
+    toolbar.id = 'bulkActionToolbar';
+    toolbar.className = 'bulk-action-toolbar shadow-lg rounded-4 p-3 bg-dark text-white d-none';
+    toolbar.style.position = 'fixed';
+    toolbar.style.bottom = '2rem';
+    toolbar.style.left = '50%';
+    toolbar.style.transform = 'translateX(-50%)';
+    toolbar.style.zIndex = '1060';
+    toolbar.style.minWidth = '300px';
+    
+    toolbar.innerHTML = `
+        <div class="d-flex align-items-center justify-content-between gap-4">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary" id="selectedCountText">0</span>
+                <span class="small fw-bold">Items Selected</span>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-light border-0 fw-bold" onclick="bulkToggleStatus('active')">
+                    <i data-lucide="power" style="width: 16px; height: 16px;" class="me-1"></i> Activate
+                </button>
+                <button class="btn btn-sm btn-outline-warning border-0 fw-bold" onclick="bulkToggleStatus('inactive')">
+                    <i data-lucide="power-off" style="width: 16px; height: 16px;" class="me-1"></i> Deactivate
+                </button>
+                <button class="btn btn-sm btn-outline-danger border-0 fw-bold" onclick="bulkDelete()">
+                    <i data-lucide="trash-2" style="width: 16px; height: 16px;" class="me-1"></i> Delete
+                </button>
+                <div class="vr bg-white opacity-25"></div>
+                <button class="btn btn-sm btn-link text-white text-decoration-none small" onclick="clearSelection()">Cancel</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(toolbar);
+    if (window.lucide) lucide.createIcons();
+}
+
+function toggleAllProducts(master) {
+    const checkboxes = document.querySelectorAll('.product-checkbox');
+    checkboxes.forEach(cb => cb.checked = master.checked);
+    updateBulkActions();
+}
+
+function updateBulkActions() {
+    const checkboxes = document.querySelectorAll('.product-checkbox:checked');
+    const toolbar = document.getElementById('bulkActionToolbar');
+    const countText = document.getElementById('selectedCountText');
+    const masterCheckbox = document.getElementById('selectAllProducts');
+    const allCheckboxes = document.querySelectorAll('.product-checkbox');
+
+    if (checkboxes.length > 0) {
+        toolbar.classList.remove('d-none');
+        toolbar.classList.add('d-flex');
+        countText.innerText = checkboxes.length;
+    } else {
+        toolbar.classList.add('d-none');
+        toolbar.classList.remove('d-flex');
+    }
+
+    if (masterCheckbox) {
+        masterCheckbox.checked = checkboxes.length === allCheckboxes.length && allCheckboxes.length > 0;
+    }
+}
+
+function clearSelection() {
+    const checkboxes = document.querySelectorAll('.product-checkbox');
+    checkboxes.forEach(cb => cb.checked = false);
+    const master = document.getElementById('selectAllProducts');
+    if (master) master.checked = false;
+    updateBulkActions();
+}
+
+function exportToExcel() {
+    const urlParams = new URLSearchParams(window.location.search);
+    window.location.href = `/api/products/export?` + urlParams.toString();
+}
+
+async function bulkToggleStatus(targetStatus) {
+    const selectedIds = Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => parseInt(cb.value));
+    if (selectedIds.length === 0) return;
+
+    if (!confirm(`Are you sure you want to ${targetStatus === 'active' ? 'activate' : 'deactivate'} ${selectedIds.length} products?`)) return;
+
+    try {
+        const response = await fetch('/api/products/bulk-status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': document.querySelector('input[name="csrf_token"]')?.value || ''
+            },
+            body: JSON.stringify({ ids: selectedIds, status: targetStatus })
+        });
+        const result = await response.json();
+        if (result.status === 'success') {
+            showToast(result.message, 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showToast(result.error || 'Failed to update products', 'error');
+        }
+    } catch (err) {
+        showToast('Error communicating with server', 'error');
+    }
+}
+
+async function bulkDelete() {
+    const selectedIds = Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => parseInt(cb.value));
+    if (selectedIds.length === 0) return;
+
+    if (!confirm(`CRITICAL: Are you sure you want to DELETE ${selectedIds.length} products? This action cannot be undone.`)) return;
+
+    try {
+        const response = await fetch('/api/products/bulk-delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': document.querySelector('input[name="csrf_token"]')?.value || ''
+            },
+            body: JSON.stringify({ ids: selectedIds })
+        });
+        const result = await response.json();
+        if (result.status === 'success') {
+            showToast(result.message, 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showToast(result.error || 'Failed to delete products', 'error');
+        }
+    } catch (err) {
+        showToast('Error communicating with server', 'error');
+    }
+}
 
 const t = (key, replacements = {}) => {
     let text = (window.TRANSLATIONS && window.TRANSLATIONS[key]) ? window.TRANSLATIONS[key] : key;

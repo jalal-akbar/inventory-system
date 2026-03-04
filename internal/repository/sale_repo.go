@@ -46,9 +46,9 @@ func (r *mysqlSaleRepository) CreateSale(s *domain.Sale) (int, error) {
 
 func (r *mysqlSaleRepository) CreateSaleItem(i *domain.SaleItem) error {
 	_, err := r.getDB().Exec(`
-		INSERT INTO sale_items (sale_id, product_id, batch_id, quantity, price, subtotal, sale_unit, sub_unit, items_per_unit)
+		INSERT INTO sale_items (sale_id, product_id, batch_id, quantity, price, subtotal, sale_unit, base_unit, items_per_unit)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		i.SaleID, i.ProductID, i.BatchID, i.Quantity, i.Price, i.Subtotal, i.SaleUnit, i.SubUnit, i.ItemsPerUnit)
+		i.SaleID, i.ProductID, i.BatchID, i.Quantity, i.Price, i.Subtotal, i.SaleUnit, i.BaseUnit, i.ItemsPerUnit)
 	return err
 }
 
@@ -83,7 +83,7 @@ func (r *mysqlSaleRepository) FindByID(id int) (*domain.Sale, error) {
 }
 
 func (r *mysqlSaleRepository) GetSaleItems(saleID int) ([]domain.SaleItem, error) {
-	rows, err := r.getDB().Query("SELECT id, sale_id, product_id, batch_id, quantity, price, subtotal, sale_unit, sub_unit, items_per_unit FROM sale_items WHERE sale_id = ?", saleID)
+	rows, err := r.getDB().Query("SELECT id, sale_id, product_id, batch_id, quantity, price, subtotal, sale_unit, base_unit, items_per_unit FROM sale_items WHERE sale_id = ?", saleID)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (r *mysqlSaleRepository) GetSaleItems(saleID int) ([]domain.SaleItem, error
 	var items []domain.SaleItem
 	for rows.Next() {
 		var i domain.SaleItem
-		if err := rows.Scan(&i.ID, &i.SaleID, &i.ProductID, &i.BatchID, &i.Quantity, &i.Price, &i.Subtotal, &i.SaleUnit, &i.SubUnit, &i.ItemsPerUnit); err != nil {
+		if err := rows.Scan(&i.ID, &i.SaleID, &i.ProductID, &i.BatchID, &i.Quantity, &i.Price, &i.Subtotal, &i.SaleUnit, &i.BaseUnit, &i.ItemsPerUnit); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

@@ -27,13 +27,15 @@ func (h *ProductHandler) Index(w http.ResponseWriter, r *http.Request) {
 	search := r.URL.Query().Get("search")
 	filter := r.URL.Query().Get("filter")
 	products, _ := h.productService.SearchProducts(search, filter)
+	pendingCount, _ := h.productService.GetPendingCount()
 
 	lang := h.GetLang(r)
 	h.Render(w, r, "inventory/index", map[string]interface{}{
-		"pageTitle":    i18n.T("inventory", lang),
-		"browserTitle": i18n.T("inventory", lang) + " - " + "Inventory System",
+		"pageTitle":    i18n.T("manage_products", lang),
+		"browserTitle": i18n.T("manage_products", lang) + " - " + "Inventory System",
 		"CurrentPage":  "inventory",
 		"Products":     products,
+		"PendingCount": pendingCount,
 		"Filters": map[string]string{
 			"search": search,
 			"filter": filter,
@@ -118,5 +120,16 @@ func (h *ProductHandler) PrintLabel(w http.ResponseWriter, r *http.Request) {
 		"pageTitle":    i18n.T("print_label", lang),
 		"browserTitle": i18n.T("print_label", lang) + " - " + "Inventory System",
 		"Product":      product["product"],
+	})
+}
+func (h *ProductHandler) Restock(w http.ResponseWriter, r *http.Request) {
+	products, _ := h.productService.GetLowStock()
+
+	lang := h.GetLang(r)
+	h.Render(w, r, "inventory/restock", map[string]interface{}{
+		"pageTitle":    i18n.T("order_restock", lang),
+		"browserTitle": i18n.T("order_restock", lang) + " - " + "Inventory System",
+		"CurrentPage":  "restock",
+		"Products":     products,
 	})
 }

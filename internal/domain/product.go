@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-var ValidUnits = []string{"Box", "Strip", "Pcs"}
+var ValidUnits = []string{"Box", "Strip", "Blister", "Sheet", "Pcs"}
 
 var ValidCategories = []string{
 	"Medicine - OTC",
@@ -65,7 +65,7 @@ type Product struct {
 	Category         string    `json:"category"` // Kept for backward compatibility
 	TherapeuticClass string    `json:"therapeutic_class"`
 	Unit             string    `json:"unit"`
-	SubUnit          string    `json:"sub_unit"`
+	BaseUnit         string    `json:"base_unit"`
 	ItemsPerUnit     int       `json:"items_per_unit"`
 	StorageLocation  string    `json:"storage_location"`
 	PurchasePrice    float64   `json:"purchase_price"`

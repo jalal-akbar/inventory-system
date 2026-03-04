@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"inventory-system/internal/domain"
 	"inventory-system/internal/middleware"
 	"inventory-system/internal/service"
@@ -9,17 +10,21 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/xuri/excelize/v2"
 )
 
 type ProductApiHandler struct {
 	BaseHandler
 	productService service.ProductService
+	reportService  service.ReportService
 }
 
-func NewProductApiHandler(base BaseHandler, pService service.ProductService) *ProductApiHandler {
+func NewProductApiHandler(base BaseHandler, pService service.ProductService, rService service.ReportService) *ProductApiHandler {
 	return &ProductApiHandler{
 		BaseHandler:    base,
 		productService: pService,
+		reportService:  rService,
 	}
 }
 
@@ -67,7 +72,7 @@ func (h *ProductApiHandler) Store(w http.ResponseWriter, r *http.Request) {
 	userID := session.UserID
 	role := session.Role
 
-	var name, sku, category, therapeuticClass, unit, subUnit, storage, batch, expiry string
+	var name, sku, category, therapeuticClass, unit, baseUnit, storage, batch, expiry string
 	var itemsPerUnit, minStock int
 	var purchasePrice, sellingPrice, initialStock float64
 
@@ -78,7 +83,7 @@ func (h *ProductApiHandler) Store(w http.ResponseWriter, r *http.Request) {
 			Category         string  `json:"category"`
 			TherapeuticClass string  `json:"therapeutic_class"`
 			Unit             string  `json:"unit"`
-			SubUnit          string  `json:"sub_unit"`
+			BaseUnit         string  `json:"base_unit"`
 			ItemsPerUnit     int     `json:"items_per_unit"`
 			StorageLocation  string  `json:"storage_location"`
 			PurchasePrice    float64 `json:"purchase_price"`
@@ -97,7 +102,7 @@ func (h *ProductApiHandler) Store(w http.ResponseWriter, r *http.Request) {
 		category = data.Category
 		therapeuticClass = data.TherapeuticClass
 		unit = data.Unit
-		subUnit = data.SubUnit
+		baseUnit = data.BaseUnit
 		itemsPerUnit = data.ItemsPerUnit
 		storage = data.StorageLocation
 		purchasePrice = data.PurchasePrice
@@ -112,7 +117,7 @@ func (h *ProductApiHandler) Store(w http.ResponseWriter, r *http.Request) {
 		category = r.FormValue("category")
 		therapeuticClass = r.FormValue("therapeutic_class")
 		unit = r.FormValue("unit")
-		subUnit = r.FormValue("sub_unit")
+		baseUnit = r.FormValue("base_unit")
 		itemsPerUnit, _ = strconv.Atoi(r.FormValue("items_per_unit"))
 		storage = r.FormValue("storage_location")
 		purchasePrice, _ = strconv.ParseFloat(r.FormValue("purchase_price"), 64)
@@ -153,7 +158,7 @@ func (h *ProductApiHandler) Store(w http.ResponseWriter, r *http.Request) {
 		Category:         category,
 		TherapeuticClass: therapeuticClass,
 		Unit:             unit,
-		SubUnit:          subUnit,
+		BaseUnit:         baseUnit,
 		ItemsPerUnit:     itemsPerUnit,
 		StorageLocation:  storage,
 		PurchasePrice:    purchasePrice,
@@ -199,7 +204,7 @@ func (h *ProductApiHandler) Update(w http.ResponseWriter, r *http.Request) {
 	role := session.Role
 
 	var id, itemsPerUnit, minStock int
-	var name, sku, category, therapeuticClass, unit, subUnit, storage string
+	var name, sku, category, therapeuticClass, unit, baseUnit, storage string
 	var purchasePrice, sellingPrice float64
 
 	if r.Header.Get("Content-Type") == "application/json" {
@@ -210,7 +215,7 @@ func (h *ProductApiHandler) Update(w http.ResponseWriter, r *http.Request) {
 			Category         string  `json:"category"`
 			TherapeuticClass string  `json:"therapeutic_class"`
 			Unit             string  `json:"unit"`
-			SubUnit          string  `json:"sub_unit"`
+			BaseUnit         string  `json:"base_unit"`
 			ItemsPerUnit     int     `json:"items_per_unit"`
 			StorageLocation  string  `json:"storage_location"`
 			PurchasePrice    float64 `json:"purchase_price"`
@@ -227,7 +232,7 @@ func (h *ProductApiHandler) Update(w http.ResponseWriter, r *http.Request) {
 		category = data.Category
 		therapeuticClass = data.TherapeuticClass
 		unit = data.Unit
-		subUnit = data.SubUnit
+		baseUnit = data.BaseUnit
 		itemsPerUnit = data.ItemsPerUnit
 		storage = data.StorageLocation
 		purchasePrice = data.PurchasePrice
@@ -252,7 +257,7 @@ func (h *ProductApiHandler) Update(w http.ResponseWriter, r *http.Request) {
 		category = r.FormValue("category")
 		therapeuticClass = r.FormValue("therapeutic_class")
 		unit = r.FormValue("unit")
-		subUnit = r.FormValue("sub_unit")
+		baseUnit = r.FormValue("base_unit")
 
 		itemsPerUnitStr := r.FormValue("items_per_unit")
 		if itemsPerUnitStr != "" {
@@ -317,7 +322,7 @@ func (h *ProductApiHandler) Update(w http.ResponseWriter, r *http.Request) {
 		Category:         category,
 		TherapeuticClass: therapeuticClass,
 		Unit:             unit,
-		SubUnit:          subUnit,
+		BaseUnit:         baseUnit,
 		ItemsPerUnit:     itemsPerUnit,
 		StorageLocation:  storage,
 		MinStock:         minStock,
@@ -325,7 +330,7 @@ func (h *ProductApiHandler) Update(w http.ResponseWriter, r *http.Request) {
 		SellingPrice:     sellingPrice,
 	}
 
-	if err := h.productService.UpdateProduct(id, p, role); err != nil {
+	if err := h.productService.UpdateProduct(id, p, role, session.UserID); err != nil {
 		log.Printf("Error updating product %d: %v", id, err)
 		if r.Header.Get("HX-Request") == "true" {
 			w.Header().Set("HX-Trigger", `{"toast": {"type": "error", "message": "Failed to update product: `+err.Error()+`"}}`)
@@ -365,7 +370,13 @@ func (h *ProductApiHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		id, _ = strconv.Atoi(r.FormValue("id"))
 	}
 
-	if err := h.productService.DeleteProduct(id); err != nil {
+	session := middleware.GetSession(r)
+	userID := 0
+	if session != nil {
+		userID = session.UserID
+	}
+
+	if err := h.productService.DeleteProduct(id, userID); err != nil {
 		log.Printf("Error deleting product %d: %v", id, err)
 		if r.Header.Get("HX-Request") == "true" {
 			w.Header().Set("HX-Trigger", `{"toast": {"type": "error", "message": "Failed to delete product: `+err.Error()+`"}}`)
@@ -405,7 +416,13 @@ func (h *ProductApiHandler) Verify(w http.ResponseWriter, r *http.Request) {
 		id, _ = strconv.Atoi(r.FormValue("id"))
 	}
 
-	if err := h.productService.VerifyProduct(id); err != nil {
+	session := middleware.GetSession(r)
+	userID := 0
+	if session != nil {
+		userID = session.UserID
+	}
+
+	if err := h.productService.VerifyProduct(id, userID); err != nil {
 		log.Printf("Error verifying product %d: %v", id, err)
 		if r.Header.Get("HX-Request") == "true" {
 			w.Header().Set("HX-Trigger", `{"toast": {"type": "error", "message": "Failed to verify product: `+err.Error()+`"}}`)
@@ -423,6 +440,58 @@ func (h *ProductApiHandler) Verify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.RespondJSON(w, http.StatusOK, map[string]interface{}{"status": "success", "message": "Product verified successfully"})
+}
+
+func (h *ProductApiHandler) ToggleStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var id int
+	if r.Header.Get("Content-Type") == "application/json" {
+		var data struct {
+			ID int `json:"id"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+			h.RespondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid JSON"})
+			return
+		}
+		id = data.ID
+	} else {
+		id, _ = strconv.Atoi(r.FormValue("id"))
+	}
+
+	session := middleware.GetSession(r)
+	userID := 0
+	if session != nil {
+		userID = session.UserID
+	}
+
+	newStatus, err := h.productService.ToggleProductStatus(id, userID)
+	if err != nil {
+		log.Printf("Error toggling product status %d: %v", id, err)
+		if r.Header.Get("HX-Request") == "true" {
+			w.Header().Set("HX-Trigger", `{"toast": {"type": "error", "message": "Failed to toggle status: `+err.Error()+`"}}`)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		h.RespondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	msg := "Product activated"
+	if newStatus == "inactive" {
+		msg = "Product deactivated"
+	}
+
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("HX-Trigger", `{"toast": {"type": "success", "message": "`+msg+`"}}`)
+		w.Header().Set("HX-Location", "/products")
+		return
+	}
+
+	h.RespondJSON(w, http.StatusOK, map[string]interface{}{"status": "success", "message": msg, "new_status": newStatus})
 }
 
 func (h *ProductApiHandler) GetDetails(w http.ResponseWriter, r *http.Request) {
@@ -455,4 +524,132 @@ func (h *ProductApiHandler) Search(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.RespondJSON(w, http.StatusOK, map[string]interface{}{"status": "success", "data": results})
+}
+
+func (h *ProductApiHandler) GetLedger(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(r.URL.Query().Get("id"))
+	startDate := r.URL.Query().Get("start_date")
+	endDate := r.URL.Query().Get("end_date")
+
+	if startDate == "" {
+		startDate = "2000-01-01" // Far past
+	}
+	if endDate == "" {
+		endDate = "2099-12-31" // Far future
+	}
+
+	startBalance, entries, err := h.reportService.GetProductLedger(id, startDate, endDate)
+	if err != nil {
+		h.RespondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	h.RespondJSON(w, http.StatusOK, map[string]interface{}{
+		"status":        "success",
+		"start_balance": startBalance,
+		"entries":       entries,
+	})
+}
+func (h *ProductApiHandler) BulkStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var data struct {
+		IDs    []int  `json:"ids"`
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.RespondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid JSON"})
+		return
+	}
+
+	session := middleware.GetSession(r)
+	userID := 0
+	if session != nil {
+		userID = session.UserID
+	}
+
+	if err := h.productService.BulkToggleStatus(data.IDs, data.Status, userID); err != nil {
+		h.RespondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	h.RespondJSON(w, http.StatusOK, map[string]interface{}{"status": "success", "message": "Products updated successfully"})
+}
+
+func (h *ProductApiHandler) BulkDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var data struct {
+		IDs []int `json:"ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.RespondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid JSON"})
+		return
+	}
+
+	session := middleware.GetSession(r)
+	userID := 0
+	if session != nil {
+		userID = session.UserID
+	}
+
+	if err := h.productService.BulkDelete(data.IDs, userID); err != nil {
+		h.RespondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	h.RespondJSON(w, http.StatusOK, map[string]interface{}{"status": "success", "message": "Products deleted successfully"})
+}
+
+func (h *ProductApiHandler) ExportExcel(w http.ResponseWriter, r *http.Request) {
+	search := r.URL.Query().Get("search")
+	filter := r.URL.Query().Get("filter")
+
+	products, err := h.productService.SearchProducts(search, filter)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	f := excelize.NewFile()
+	sheet := "Products"
+	index, _ := f.NewSheet(sheet)
+	f.DeleteSheet("Sheet1")
+
+	// Set Header
+	headers := []string{"SKU", "Name", "Category", "Class", "Stock (Pcs)", "Unit", "Purchase Price", "Selling Price", "Expiry", "Status"}
+	for i, head := range headers {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+		f.SetCellValue(sheet, cell, head)
+	}
+
+	// Set Rows
+	for i, p := range products {
+		rowIdx := i + 2
+		f.SetCellValue(sheet, fmt.Sprintf("A%d", rowIdx), p["sku_code"])
+		f.SetCellValue(sheet, fmt.Sprintf("B%d", rowIdx), p["name"])
+		f.SetCellValue(sheet, fmt.Sprintf("C%d", rowIdx), p["category"])
+		f.SetCellValue(sheet, fmt.Sprintf("D%d", rowIdx), p["therapeutic_class"])
+		f.SetCellValue(sheet, fmt.Sprintf("E%d", rowIdx), p["total_stock"])
+		f.SetCellValue(sheet, fmt.Sprintf("F%d", rowIdx), p["unit"])
+		f.SetCellValue(sheet, fmt.Sprintf("G%d", rowIdx), p["purchase_price"])
+		f.SetCellValue(sheet, fmt.Sprintf("H%d", rowIdx), p["selling_price"])
+		f.SetCellValue(sheet, fmt.Sprintf("I%d", rowIdx), p["nearest_expiry"])
+		f.SetCellValue(sheet, fmt.Sprintf("J%d", rowIdx), p["status"])
+	}
+
+	f.SetActiveSheet(index)
+
+	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	w.Header().Set("Content-Disposition", "attachment; filename=inventory_report.xlsx")
+
+	if err := f.Write(w); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }

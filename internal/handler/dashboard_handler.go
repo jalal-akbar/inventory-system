@@ -75,9 +75,6 @@ func (h *DashboardHandler) Index(w http.ResponseWriter, r *http.Request) {
 	recentProducts, _ := h.ProductService.GetRecentProducts(5)
 	data["recentProducts"] = recentProducts
 
-	expiringCount, _ := h.BatchService.GetExpiringCount(180) // 180 days warning matching mockup
-	data["expiringCount"] = expiringCount
-
 	h.Render(w, r, "dashboard/index", data)
 }
 

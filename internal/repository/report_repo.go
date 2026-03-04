@@ -42,6 +42,14 @@ type StockMutationRow struct {
 	Keluar       int    `json:"keluar"`
 }
 
+type LedgerEntry struct {
+	CreatedAt   string `json:"created_at"`
+	Description string `json:"description"`
+	ReferenceID string `json:"reference_id"`
+	Type        string `json:"type"` // "in", "out"
+	Quantity    int    `json:"quantity"`
+}
+
 type TodaySummary struct {
 	Transactions      int     `json:"transactions"`
 	Revenue           float64 `json:"revenue"`
@@ -56,6 +64,7 @@ type ReportRepository interface {
 	GetHistory(startDate, endDate string) ([]map[string]interface{}, error)
 	GetPsychotropicReport(startDate, endDate string) ([]PsychotropicReportRow, error)
 	GetStockMutation(startDate, endDate string) ([]StockMutationRow, error)
+	GetProductLedger(productID int, startDate, endDate string) (int, []LedgerEntry, error)
 	CountExpiringSoon(days int) (int, error)
 	GetTodaySummary(today string) (*TodaySummary, error)
 	GetYesterdaySummary(yesterday string) (*TodaySummary, error)
@@ -265,7 +274,7 @@ func (r *mysqlReportRepository) GetStockMutation(startDate, endDate string) ([]S
 
 func (r *mysqlReportRepository) CountExpiringSoon(days int) (int, error) {
 	now := time.Now().Format("2006-01-02")
-	query := "SELECT COUNT(*) FROM product_batches WHERE current_stock > 0 AND expiry_date <= date(?, '+' || ? || ' days') AND expiry_date >= ?"
+	query := "SELECT COUNT(b.id) FROM product_batches b JOIN products p ON b.product_id = p.id WHERE p.is_active = 1 AND b.current_stock > 0 AND b.expiry_date <= date(?, '+' || ? || ' days') AND b.expiry_date >= ?"
 	var count int
 	err := r.db.QueryRow(query, now, days, now).Scan(&count)
 	return count, err
@@ -353,15 +362,82 @@ func (r *mysqlReportRepository) GetProfitSummary(startDate, endDate string) (flo
 	return profit, err
 }
 
+func (r *mysqlReportRepository) GetProductLedger(productID int, startDate, endDate string) (int, []LedgerEntry, error) {
+	// 1. Calculate Starting Balance
+	// Starting Balance = (Total Approved Stock Entries before startDate) - (Total Active Sales before startDate)
+	queryStartBalance := `
+		SELECT 
+			(
+				SELECT COALESCE(SUM(quantity), 0) 
+				FROM stock_entries 
+				WHERE product_id = ? AND status = 'approved' AND created_at < ?
+			) - (
+				SELECT COALESCE(SUM(quantity), 0) 
+				FROM sale_items si 
+				JOIN sales s ON si.sale_id = s.id 
+				WHERE si.product_id = ? AND s.status = 'active' AND s.created_at < ?
+			) as start_balance
+	`
+	var startBalance int
+	err := r.db.QueryRow(queryStartBalance, productID, startDate, productID, startDate).Scan(&startBalance)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	// 2. Fetch Entries within the range
+	// We combine entries from stock_entries and sale_items
+	queryEntries := `
+		SELECT created_at, 'Stock Entry' as description, CAST(id as TEXT) as reference_id, 'in' as type, quantity
+		FROM stock_entries
+		WHERE product_id = ? AND status = 'approved' AND date(created_at) BETWEEN ? AND ?
+		
+		UNION ALL
+		
+		SELECT s.created_at, 'Sale' as description, CAST(s.id as TEXT) as reference_id, 'out' as type, si.quantity
+		FROM sale_items si
+		JOIN sales s ON si.sale_id = s.id
+		WHERE si.product_id = ? AND s.status = 'active' AND date(s.created_at) BETWEEN ? AND ?
+		
+		ORDER BY created_at ASC
+	`
+
+	rows, err := r.db.Query(queryEntries, productID, startDate, endDate, productID, startDate, endDate)
+	if err != nil {
+		return startBalance, nil, err
+	}
+	defer rows.Close()
+
+	var entries []LedgerEntry
+	for rows.Next() {
+		var entry LedgerEntry
+		if err := rows.Scan(&entry.CreatedAt, &entry.Description, &entry.ReferenceID, &entry.Type, &entry.Quantity); err != nil {
+			return startBalance, nil, err
+		}
+		entries = append(entries, entry)
+	}
+
+	return startBalance, entries, nil
+}
+
 func (r *mysqlReportRepository) GetExpiringCount(days int, now string) (int, error) {
-	query := "SELECT COUNT(*) FROM product_batches WHERE current_stock > 0 AND expiry_date > ? AND expiry_date <= date(?, '+' || ? || ' days')"
+	query := `SELECT COUNT(b.id) 
+			 FROM product_batches b 
+			 JOIN products p ON b.product_id = p.id 
+			 WHERE p.status = 'active' AND p.is_verified = 1 
+			   AND b.is_verified = 1 AND b.current_stock > 0 
+			   AND b.expiry_date > ? AND b.expiry_date <= date(?, '+' || ? || ' days')`
 	var count int
 	err := r.db.QueryRow(query, now, now, days).Scan(&count)
 	return count, err
 }
 
 func (r *mysqlReportRepository) GetExpiredCount(now string) (int, error) {
-	query := "SELECT COUNT(*) FROM product_batches WHERE current_stock > 0 AND expiry_date <= ?"
+	query := `SELECT COUNT(b.id) 
+			 FROM product_batches b 
+			 JOIN products p ON b.product_id = p.id 
+			 WHERE p.status = 'active' AND p.is_verified = 1 
+			   AND b.is_verified = 1 AND b.current_stock > 0 
+			   AND b.expiry_date <= ?`
 	var count int
 	err := r.db.QueryRow(query, now).Scan(&count)
 	return count, err

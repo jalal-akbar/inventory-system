@@ -80,7 +80,7 @@ func (s *saleService) ProcessSale(userID int, items []domain.SaleItem, paymentMe
 		// The front-end passed the chosen Unit in item.SaleUnit
 		chosenUnit := item.SaleUnit
 		if chosenUnit == "" {
-			chosenUnit = p.SubUnit
+			chosenUnit = p.BaseUnit
 		}
 
 		// Treat quantity as PCS directly (Opsi A)
@@ -117,7 +117,7 @@ func (s *saleService) ProcessSale(userID int, items []domain.SaleItem, paymentMe
 				Price:        batch.SellingPrice,
 				Subtotal:     itemSubtotal,
 				SaleUnit:     chosenUnit,
-				SubUnit:      p.SubUnit,
+				BaseUnit:     p.BaseUnit,
 				ItemsPerUnit: p.ItemsPerUnit,
 			})
 
@@ -276,7 +276,7 @@ func (s *saleService) GetSaleDetails(saleID int) (map[string]interface{}, error)
 			"price":          item.Price,
 			"subtotal":       item.Subtotal,
 			"sale_unit":      item.SaleUnit,
-			"sub_unit":       item.SubUnit,
+			"base_unit":      item.BaseUnit,
 			"items_per_unit": item.ItemsPerUnit,
 		})
 	}

@@ -8,16 +8,20 @@ import (
 
 type ProductService interface {
 	CreateProduct(p *domain.Product, initialBatchNumber, expiryDate string, initialQty int, requestedBy int) (int, error)
-	UpdateProduct(id int, p *domain.Product, userRole string) error
-	DeleteProduct(id int) error
-	VerifyProduct(id int) error
+	UpdateProduct(id int, p *domain.Product, userRole string, userID int) error
+	DeleteProduct(id int, userID int) error
+	VerifyProduct(id int, userID int) error
+	ToggleProductStatus(id int, userID int) (string, error)
 	SearchProducts(search, filter string) ([]map[string]interface{}, error)
 	QuickSearch(query string) ([]map[string]interface{}, error)
 	GetDetails(id int) (map[string]interface{}, error)
 	GetPendingCount() (int, error)
+	GetLowStock() ([]map[string]interface{}, error)
 	GetRecentProducts(limit int) ([]map[string]interface{}, error)
 	GetBestSellingProducts(limit int) ([]map[string]interface{}, error)
 	SearchWithAllBatches(search, filter string) ([]map[string]interface{}, error)
+	BulkToggleStatus(ids []int, targetStatus string, userID int) error
+	BulkDelete(ids []int, userID int) error
 }
 
 type productService struct {
@@ -98,16 +102,28 @@ func (s *productService) CreateProduct(p *domain.Product, batchNum, expiry strin
 	return pID, nil
 }
 
-func (s *productService) UpdateProduct(id int, p *domain.Product, role string) error {
+func (s *productService) UpdateProduct(id int, p *domain.Product, role string, userID int) error {
 	isAdmin := role == "admin"
-	return s.productRepo.UpdateFull(id, p, isAdmin)
+	if err := s.productRepo.UpdateFull(id, p, isAdmin); err != nil {
+		return err
+	}
+	return s.logRepo.Log(userID, "Updated product: "+p.Name)
 }
 
-func (s *productService) DeleteProduct(id int) error {
-	return s.productRepo.SoftDelete(id)
+func (s *productService) DeleteProduct(id int, userID int) error {
+	p, err := s.productRepo.FindByID(id)
+	if err != nil {
+		return err
+	}
+
+	if err := s.productRepo.SoftDelete(id); err != nil {
+		return err
+	}
+
+	return s.logRepo.Log(userID, "Inactivated product: "+p.Name)
 }
 
-func (s *productService) VerifyProduct(id int) error {
+func (s *productService) VerifyProduct(id int, userID int) error {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
@@ -118,6 +134,12 @@ func (s *productService) VerifyProduct(id int) error {
 	productRepo := s.productRepo.WithTx(tx)
 	batchRepo := s.batchRepo.WithTx(tx)
 	entryRepo := s.entryRepo.WithTx(tx)
+	logRepo := s.logRepo.WithTx(tx)
+
+	p, err := productRepo.FindByID(id)
+	if err != nil {
+		return err
+	}
 
 	if err := productRepo.Verify(id); err != nil {
 		return err
@@ -129,7 +151,40 @@ func (s *productService) VerifyProduct(id int) error {
 		return err
 	}
 
+	if err := logRepo.Log(userID, "Verified product: "+p.Name); err != nil {
+		return err
+	}
+
 	return tx.Commit()
+}
+
+func (s *productService) ToggleProductStatus(id int, userID int) (string, error) {
+	p, err := s.productRepo.FindByID(id)
+	if err != nil {
+		return "", err
+	}
+
+	newStatus := "active"
+	isVerified := 1
+	if p.Status == "active" {
+		newStatus = "inactive"
+		isVerified = 0
+	}
+
+	if err := s.productRepo.UpdateStatus(id, newStatus, isVerified); err != nil {
+		return "", err
+	}
+
+	actionTxt := "Activated"
+	if newStatus == "inactive" {
+		actionTxt = "Inactivated"
+	}
+
+	if err := s.logRepo.Log(userID, actionTxt+" product: "+p.Name); err != nil {
+		return "", err
+	}
+
+	return newStatus, nil
 }
 
 func (s *productService) SearchProducts(search, filter string) ([]map[string]interface{}, error) {
@@ -161,6 +216,10 @@ func (s *productService) GetPendingCount() (int, error) {
 	return s.productRepo.GetPendingCount()
 }
 
+func (s *productService) GetLowStock() ([]map[string]interface{}, error) {
+	return s.productRepo.GetLowStock()
+}
+
 func (s *productService) GetRecentProducts(limit int) ([]map[string]interface{}, error) {
 	return s.productRepo.GetRecent(limit)
 }
@@ -171,4 +230,56 @@ func (s *productService) GetBestSellingProducts(limit int) ([]map[string]interfa
 
 func (s *productService) SearchWithAllBatches(search, filter string) ([]map[string]interface{}, error) {
 	return s.productRepo.SearchWithAllBatches(search, filter)
+}
+func (s *productService) BulkToggleStatus(ids []int, targetStatus string, userID int) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	productRepo := s.productRepo.WithTx(tx)
+	logRepo := s.logRepo.WithTx(tx)
+
+	isVerified := 1
+	if targetStatus == "inactive" {
+		isVerified = 0
+	}
+
+	for _, id := range ids {
+		p, err := productRepo.FindByID(id)
+		if err != nil {
+			continue
+		}
+		if err := productRepo.UpdateStatus(id, targetStatus, isVerified); err != nil {
+			return err
+		}
+		logRepo.Log(userID, "Bulk "+targetStatus+": "+p.Name)
+	}
+
+	return tx.Commit()
+}
+
+func (s *productService) BulkDelete(ids []int, userID int) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	productRepo := s.productRepo.WithTx(tx)
+	logRepo := s.logRepo.WithTx(tx)
+
+	for _, id := range ids {
+		p, err := productRepo.FindByID(id)
+		if err != nil {
+			continue
+		}
+		if err := productRepo.SoftDelete(id); err != nil {
+			return err
+		}
+		logRepo.Log(userID, "Bulk Deleted (Inactive): "+p.Name)
+	}
+
+	return tx.Commit()
 }

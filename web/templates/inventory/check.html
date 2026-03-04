@@ -66,18 +66,18 @@
                                         <span class="smaller text-muted">{{ formatShortDate .expiry_date }}</span>
                                     </td>
                                     <td class="py-3 text-center">
-                                        <span class="fw-bold">{{ formatPcsToUnit .current_stock .unit .sub_unit .items_per_unit }}</span>
+                                        <span class="fw-bold">{{ formatPcsToUnit .current_stock .unit .base_unit .items_per_unit }}</span>
                                     </td>
                                     <td class="px-4 py-3">
                                         <div class="input-group input-group-sm">
-                                            <input type="hidden" name="unit_{{ .batch_id }}" value="{{ .sub_unit }}">
+                                            <input type="hidden" name="unit_{{ .batch_id }}" value="{{ .base_unit }}">
                                             <input type="hidden" name="items_per_unit_{{ .batch_id }}" value="1">
                                             <input type="number" 
                                                    name="actual_stock_{{ .batch_id }}" 
                                                    class="form-control text-center border-0 bg-light rounded-3 py-2 shadow-none" 
                                                    placeholder="{{ .current_stock }}"
                                                    min="0">
-                                            <span class="input-group-text bg-white border-0">{{ .sub_unit }}</span>
+                                            <span class="input-group-text bg-white border-0">{{ .base_unit }}</span>
                                         </div>
                                     </td>
                                 </tr>

@@ -23,20 +23,20 @@ function formatRupiah(num) {
 }
 
 // Format PCS to Unit string
-function formatPcsToUnitJS(totalPcs, unitName, subUnitName, itemsPerUnit) {
-    if (!subUnitName) subUnitName = "Pcs";
-    if (totalPcs <= 0) return `0 ${subUnitName}`;
-    if (itemsPerUnit <= 1 || unitName === subUnitName) return `${totalPcs} ${subUnitName}`;
+function formatPcsToUnitJS(totalPcs, unitName, baseUnitName, itemsPerUnit) {
+    if (!baseUnitName) baseUnitName = "Pcs";
+    if (totalPcs <= 0) return `0 ${baseUnitName}`;
+    if (itemsPerUnit <= 1 || unitName === baseUnitName) return `${totalPcs} ${baseUnitName}`;
 
     const units = Math.floor(totalPcs / itemsPerUnit);
     const remainingPcs = totalPcs % itemsPerUnit;
 
     if (units > 0 && remainingPcs > 0) {
-        return `${units} ${unitName} ${remainingPcs} ${subUnitName}`;
+        return `${units} ${unitName} ${remainingPcs} ${baseUnitName}`;
     } else if (units > 0) {
         return `${units} ${unitName}`;
     }
-    return `${remainingPcs} ${subUnitName}`;
+    return `${remainingPcs} ${baseUnitName}`;
 }
 
 // ---------------------------------------------------------
@@ -50,7 +50,7 @@ function addCardToCart(el) {
         price: parseFloat(el.dataset.price),
         sku: el.dataset.sku,
         unit: el.dataset.unit || 'Box',
-        subUnit: el.dataset.subUnit || 'Pcs',
+        baseUnit: el.dataset.baseUnit || 'Pcs',
         stock: parseInt(el.dataset.stock) || 0,
         itemsPerUnit: parseInt(el.dataset.itemsPerUnit) || 1
     };
@@ -73,7 +73,7 @@ function addToCart(product) {
         // Check if adding 1 more exceeds stock
         const currentTotalPcs = existing.selectedUnit === 'UNIT' ? (existing.inputQty * existing.itemsPerUnit) : existing.inputQty;
         const addAmount = existing.selectedUnit === 'UNIT' ? existing.itemsPerUnit : 1;
-        
+
         if (currentTotalPcs + addAmount > product.stock) {
             Swal.fire({
                 title: window.posI18n.stockLimit,
@@ -91,9 +91,9 @@ function addToCart(product) {
             price: product.price,
             sku: product.sku,
             unit: product.unit,
-            subUnit: product.subUnit,
+            baseUnit: product.baseUnit,
             itemsPerUnit: product.itemsPerUnit,
-            selectedUnit: 'SUBUNIT',
+            selectedUnit: 'BASEUNIT',
             inputQty: 1,
             stock: product.stock
         });
@@ -105,16 +105,16 @@ function addToCart(product) {
 function changeUnit(id, type) {
     const item = cart.find(item => item.id === id);
     if (!item) return;
-    
+
     const oldUnit = item.selectedUnit;
     item.selectedUnit = type;
-    
+
     // Validate if new unit exceeds stock with current inputQty
     if (!validateStockLimit(item)) {
         item.selectedUnit = oldUnit; // Revert if invalid
         return;
     }
-    
+
     updateCartItemDOM(id);
     calculateTotal();
 }
@@ -122,17 +122,17 @@ function changeUnit(id, type) {
 function updateInputQty(id, value) {
     const item = cart.find(item => item.id === id);
     if (!item) return;
-    
+
     let newQty = parseFloat(value) || 0;
     if (newQty < 0) newQty = 0;
-    
+
     const originalQty = item.inputQty;
     item.inputQty = newQty;
-    
+
     if (!validateStockLimit(item)) {
         // validateStockLimit already caps and alerts, so just proceed to DOM update
     }
-    
+
     // Surgical update for real-time feedback
     updateCartItemDOM(id);
     calculateTotal();
@@ -141,10 +141,10 @@ function updateInputQty(id, value) {
 function updateQty(id, delta) {
     const item = cart.find(item => item.id === id);
     if (!item) return;
-    
+
     const originalQty = item.inputQty;
     item.inputQty += delta;
-    
+
     if (item.inputQty <= 0) {
         removeFromCart(id);
     } else {
@@ -184,7 +184,7 @@ function clearCart() {
 
 function validateStockLimit(item) {
     const totalPcs = item.selectedUnit === 'UNIT' ? (item.inputQty * item.itemsPerUnit) : item.inputQty;
-    
+
     if (totalPcs > item.stock) {
         // Cap at maximum possible
         if (item.selectedUnit === 'UNIT') {
@@ -199,7 +199,7 @@ function validateStockLimit(item) {
             icon: 'warning',
             confirmButtonColor: '#f97316'
         });
-        
+
         return false;
     }
     return true;
@@ -234,7 +234,7 @@ function renderCart() {
     container.innerHTML = cart.map(item => {
         const displayPrice = item.selectedUnit === 'UNIT' ? (item.price * item.itemsPerUnit) : item.price;
         const lineTotal = displayPrice * item.inputQty;
-        
+
         return `
         <div class="cart-item animate-fade-in" id="cart-item-${item.id}">
             <div class="cart-item-info">
@@ -254,8 +254,8 @@ function renderCart() {
                     </button>
                 </div>
                 <select class="unit-selector" onchange="changeUnit(${item.id}, this.value)">
-                    <option value="SUBUNIT" ${item.selectedUnit === 'SUBUNIT' ? 'selected' : ''}>${item.subUnit}</option>
-                    ${item.unit && item.unit !== item.subUnit ? `<option value="UNIT" ${item.selectedUnit === 'UNIT' ? 'selected' : ''}>${item.unit}</option>` : ''}
+                    <option value="BASEUNIT" ${item.selectedUnit === 'BASEUNIT' ? 'selected' : ''}>${item.baseUnit}</option>
+                    ${item.unit && item.unit !== item.baseUnit ? `<option value="UNIT" ${item.selectedUnit === 'UNIT' ? 'selected' : ''}>${item.unit}</option>` : ''}
                 </select>
                 <div class="cart-item-price">
                     <div class="unit-price" id="unit-price-${item.id}">${formatRupiah(displayPrice)}</div>
@@ -305,7 +305,7 @@ function calculateTotal() {
     }, 0);
     const discountInput = document.getElementById('discount-input');
     let discount = parseFloat(discountInput ? discountInput.value : 0) || 0;
-    
+
     // Sanitize and cap discount
     if (discount < 0) {
         discount = 0;
@@ -332,11 +332,11 @@ function calculateTotal() {
 function filterCategory(el, cat) {
     document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
     el.classList.add('active');
-    
+
     // Sync with hidden input for search inclusion
     const activeCatInput = document.getElementById('active-category');
     if (activeCatInput) activeCatInput.value = cat;
-    
+
     const searchInput = document.getElementById('product-search');
     // Using HTMX ajax to update results
     if (window.htmx) {
@@ -363,10 +363,10 @@ async function processCheckout() {
     const discount = parseFloat(discountInput ? discountInput.value : 0) || 0;
 
     const data = {
-        items: cart.map(i => ({ 
-            id: i.id, 
+        items: cart.map(i => ({
+            id: i.id,
             qty: i.selectedUnit === 'UNIT' ? (i.inputQty * i.itemsPerUnit) : i.inputQty,
-            unit: i.selectedUnit === 'UNIT' ? i.unit : i.subUnit
+            unit: i.selectedUnit === 'UNIT' ? i.unit : i.baseUnit
         })),
         payment_method: paymentMethod,
         customer_name: customerName,
@@ -396,36 +396,36 @@ async function processCheckout() {
                 icon: 'success',
                 confirmButtonColor: '#f97316'
             });
-            
+
             // Reduce stock in DOM to prevent page reload
             cart.forEach(item => {
                 const qtyToDeduct = item.selectedUnit === 'UNIT' ? (item.inputQty * item.itemsPerUnit) : item.inputQty;
                 const productCards = document.querySelectorAll(`.product-card[data-id="${item.id}"]`);
-                
+
                 productCards.forEach(card => {
                     let currentStock = parseInt(card.dataset.stock) || 0;
                     let newStock = currentStock - qtyToDeduct;
                     if (newStock < 0) newStock = 0;
-                    
+
                     card.dataset.stock = newStock;
-                    
+
                     const stockBadge = card.querySelector('.stock-badge');
                     if (stockBadge) {
                         const unitLabel = card.dataset.unit || item.unit;
-                        const subUnitLabel = card.dataset.subUnit || item.subUnit;
+                        const baseUnitLabel = card.dataset.baseUnit || item.baseUnit;
                         const itemsPerUnit = parseInt(card.dataset.itemsPerUnit) || 1;
-                        stockBadge.innerText = formatPcsToUnitJS(newStock, unitLabel, subUnitLabel, itemsPerUnit);
-                        
+                        stockBadge.innerText = formatPcsToUnitJS(newStock, unitLabel, baseUnitLabel, itemsPerUnit);
+
                         stockBadge.classList.remove('critical-stock', 'low-stock', 'in-stock');
                         if (newStock <= 0) stockBadge.classList.add('critical-stock');
                         else if (newStock < 5) stockBadge.classList.add('low-stock');
                         else stockBadge.classList.add('in-stock');
                     }
-                    
+
                     if (newStock <= 0) {
                         card.classList.add('out-of-stock');
                         card.removeAttribute('onclick');
-                        
+
                         if (!card.querySelector('.out-of-stock-overlay')) {
                             const overlay = document.createElement('div');
                             overlay.className = 'out-of-stock-overlay';
@@ -488,7 +488,8 @@ function initClock() {
     const clockDate = document.getElementById('global-live-date');
 
     if (clockContainer && clockTime && clockDate) {
-        const timezone = clockContainer.getAttribute('data-timezone') || 'UTC';
+        const timezone = clockContainer.getAttribute('data-timezone') ||
+            Intl.DateTimeFormat().resolvedOptions().timeZone;
         const lang = clockContainer.getAttribute('data-lang') || 'en';
 
         function updateClock() {
@@ -522,7 +523,7 @@ function initShortcuts() {
             const searchInput = document.getElementById('product-search');
             if (searchInput) searchInput.focus();
         }
-        
+
         // Clear cart with 'Escape' if search not focused
         if (e.key === 'Escape' && document.activeElement.tagName !== 'INPUT') {
             clearCart();

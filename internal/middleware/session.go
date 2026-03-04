@@ -32,8 +32,23 @@ type SessionData struct {
 	Lang     string
 }
 
-func GetSession(r *http.Request) *SessionData {
+type ctxKey string
+
+const sessionKey ctxKey = "session_obj"
+
+// GetSessionObject retrieves the raw gorilla session, using the request context as a cache
+func GetSessionObject(r *http.Request) *sessions.Session {
+	if val := r.Context().Value(sessionKey); val != nil {
+		if s, ok := val.(*sessions.Session); ok {
+			return s
+		}
+	}
 	session, _ := Store.Get(r, "inventory-session")
+	return session
+}
+
+func GetSession(r *http.Request) *SessionData {
+	session := GetSessionObject(r)
 	uid, ok1 := session.Values["user_id"].(int)
 	uname, ok2 := session.Values["username"].(string)
 	role, ok3 := session.Values["role"].(string)
@@ -56,9 +71,14 @@ func GetSession(r *http.Request) *SessionData {
 
 func SessionMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Populate context with the session object itself for caching
+		session := GetSessionObject(r)
+		ctx := context.WithValue(r.Context(), sessionKey, session)
+		r = r.WithContext(ctx)
+
 		data := GetSession(r)
 		if data != nil {
-			ctx := context.WithValue(r.Context(), "user", data)
+			ctx = context.WithValue(r.Context(), "user", data)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		} else {
 			next.ServeHTTP(w, r)

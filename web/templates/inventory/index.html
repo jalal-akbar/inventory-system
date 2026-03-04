@@ -1,4 +1,13 @@
 {{ define "content" }}
+<style>
+    .text-orange { color: #f97316 !important; }
+    .smaller { font-size: 0.75rem; }
+    .product-inactive td:not(:last-child) {
+        opacity: 0.65;
+        filter: grayscale(100%);
+        background-color: #f8f9fa;
+    }
+</style>
 <main class="content">
     <div class="container-fluid" style="max-width: 1400px; margin: 0 auto;">
         <div class="mb-4 d-flex justify-content-between align-items-end flex-wrap gap-3">
@@ -14,6 +23,24 @@
                 </button>
             </div>
         </div>
+
+        {{ if and (eq .CurrentUser.Role "admin") (gt .PendingCount 0) }}
+        <!-- Pending Approval Banner -->
+        <div class="alert border-0 rounded-4 mb-4 d-flex align-items-center justify-content-between gap-3" style="background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); border-left: 4px solid #f97316 !important; border-left-style: solid !important;">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 42px; height: 42px; background: rgba(249,115,22,0.15);">
+                    <i data-lucide="shield-alert" style="width: 22px; height: 22px; color: #f97316;"></i>
+                </div>
+                <div>
+                    <div class="fw-bold text-dark" style="font-size: 0.95rem;">{{ t "pending_banner_title" .Lang }}</div>
+                    <div class="text-muted small"><strong class="text-warning" style="color: #ea580c !important;">{{ .PendingCount }}</strong> {{ t "pending_count_badge" .Lang }}</div>
+                </div>
+            </div>
+            <a href="/products?filter=pending" class="btn btn-sm fw-bold rounded-3 px-3" style="background: #f97316; border-color: #f97316; color: #fff; white-space: nowrap;">
+                <i data-lucide="eye" style="width: 14px; height: 14px;"></i> {{ t "view_all" .Lang }}
+            </a>
+        </div>
+        {{ end }}
 
         <!-- Filters & Search -->
         <div class="card border-0 shadow-sm p-4 rounded-4 mb-4 bg-white">
@@ -31,15 +58,21 @@
                     <label class="form-label small fw-bold text-muted text-uppercase">{{ t "filter_status" .Lang }}</label>
                     <select name="filter" class="form-select border-0 bg-light rounded-3 py-2 shadow-none">
                         <option value="">{{ t "all_products" .Lang }}</option>
+                        <option value="active" {{ if eq (index .Filters "filter") "active" }}selected{{ end }}>{{ t "active" .Lang }} Only</option>
+                        <option value="inactive" {{ if eq (index .Filters "filter") "inactive" }}selected{{ end }}>{{ t "inactive" .Lang }} Only</option>
                         <option value="low_stock" {{ if eq (index .Filters "filter") "low_stock" }}selected{{ end }}>{{ t "low_stock" .Lang }}</option>
                         <option value="expiring" {{ if eq (index .Filters "filter") "expiring" }}selected{{ end }}>{{ t "expiring_soon_90d" .Lang }}</option>
+                        <option value="expiring_180" {{ if eq (index .Filters "filter") "expiring_180" }}selected{{ end }}>{{ t "expiring_soon_180d" .Lang }}</option>
                         <option value="expired" {{ if eq (index .Filters "filter") "expired" }}selected{{ end }}>{{ t "already_expired" .Lang }}</option>
                         <option value="pending" {{ if eq (index .Filters "filter") "pending" }}selected{{ end }}>{{ t "pending_verification" .Lang }}</option>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-2 d-flex gap-2">
                     <button type="submit" class="btn btn-dark w-100 py-2 rounded-3 fw-bold">
                         {{ t "filter" .Lang }}
+                    </button>
+                    <button type="button" class="btn btn-outline-success py-2 rounded-3 fw-bold" onclick="exportToExcel()" title="Export to Excel">
+                        <i data-lucide="file-spreadsheet" style="width: 20px; height: 20px;"></i>
                     </button>
                 </div>
                 <div class="col-md-2">
@@ -56,10 +89,14 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light">
                         <tr>
-                            <th class="border-0 px-4 py-3 text-muted small fw-bold text-uppercase">{{ t "product_info" .Lang }}</th>
+                            <th class="border-0 px-4 py-3 text-muted small fw-bold text-uppercase" style="width: 40px;">
+                                <input type="checkbox" class="form-check-input shadow-none" id="selectAllProducts" onclick="toggleAllProducts(this)">
+                            </th>
+                            <th class="border-0 py-3 text-muted small fw-bold text-uppercase">{{ t "product_info" .Lang }}</th>
                             <th class="border-0 py-3 text-muted small fw-bold text-uppercase">{{ t "category" .Lang }}</th>
                             <th class="border-0 py-3 text-muted small fw-bold text-uppercase text-center">{{ t "stock" .Lang }}</th>
                             <th class="border-0 py-3 text-muted small fw-bold text-uppercase">{{ t "purchase_sell_price" .Lang }}</th>
+                            <th class="border-0 py-3 text-muted small fw-bold text-uppercase">{{ t "expiry_date" .Lang }}</th>
                             <th class="border-0 py-3 text-muted small fw-bold text-uppercase">{{ t "status" .Lang }}</th>
                             <th class="border-0 px-4 py-3 text-muted small fw-bold text-uppercase text-center">{{ t "actions" .Lang }}</th>
                         </tr>
@@ -76,8 +113,11 @@
                             </tr>
                         {{ else }}
                             {{ range .Products }}
-                            <tr>
+                            <tr {{ if eq .status "inactive" }}class="product-inactive"{{ end }} data-product-id="{{ .id }}">
                                 <td class="px-4 py-3">
+                                    <input type="checkbox" class="form-check-input shadow-none product-checkbox" value="{{ .id }}" onclick="updateBulkActions()">
+                                </td>
+                                <td class="py-3">
                                     <div class="d-flex flex-column">
                                         <span class="fw-bold text-dark">{{ .name }}</span>
                                         <span class="smaller text-muted">SKU: {{ .sku_code }}</span>
@@ -94,7 +134,7 @@
                                 <td class="py-3 text-center">
                                     <div class="d-flex flex-column align-items-center">
                                         <span class="fw-bold {{ if lt .total_stock 10 }}text-danger{{ else if lt .total_stock 20 }}text-warning{{ else }}text-success{{ end }}">
-                                            {{ formatPcsToUnit .total_stock .unit .sub_unit .items_per_unit }}
+                                            {{ formatPcsToUnit .total_stock .unit .base_unit .items_per_unit }}
                                         </span>
                                     </div>
                                 </td>
@@ -109,6 +149,25 @@
                                             <i data-lucide="trending-up" style="width: 14px; height: 14px;" class="me-1"></i>{{ formatRupiah .selling_price }} <small class="text-muted fw-normal">/ Pcs</small>
                                         </span>
                                     </div>
+                                </td>
+                                <td class="py-3">
+                                    {{ if .nearest_expiry }}
+                                        {{ $days := daysUntil .nearest_expiry }}
+                                        <div class="d-flex flex-column">
+                                            <span class="small fw-bold {{ if le $days 0 }}text-danger{{ else if lt $days 90 }}text-orange{{ else if lt $days 180 }}text-warning{{ else }}text-muted{{ end }}">
+                                                {{ formatShortDate .nearest_expiry }}
+                                            </span>
+                                            <span class="smaller {{ if le $days 0 }}text-danger{{ else if lt $days 90 }}text-orange{{ else if lt $days 180 }}text-warning{{ else }}text-muted{{ end }}">
+                                                {{ if le $days 0 }}
+                                                    {{ t "already_expired" $.Lang }}
+                                                {{ else }}
+                                                    {{ $days }} {{ t "days" $.Lang }}
+                                                {{ end }}
+                                            </span>
+                                        </div>
+                                    {{ else }}
+                                        <span class="text-muted smaller">-</span>
+                                    {{ end }}
                                 </td>
                                 <td class="py-3">
                                     <div class="d-flex flex-column gap-1 align-items-start">
@@ -133,14 +192,36 @@
                                 </td>
                                 <td class="px-4 py-3 align-middle text-center" style="width: 80px;">
                                     <div class="dropdown">
-                                        <button class="btn btn-sm btn-light text-muted p-1 rounded-circle border-0 dropdown-toggle-hide-arrow d-flex align-items-center justify-content-center shadow-sm mx-auto" style="width: 32px; height: 32px; transition: all 0.2s ease;" type="button" data-bs-toggle="dropdown" aria-expanded="false" onmouseover="this.classList.replace('btn-light', 'btn-primary'); this.classList.replace('text-muted', 'text-white');" onmouseout="this.classList.replace('btn-primary', 'btn-light'); this.classList.replace('text-white', 'text-muted');">
+                                        <button class="btn btn-sm btn-light text-muted p-1 rounded-circle border-0 dropdown-toggle-hide-arrow d-flex align-items-center justify-content-center shadow-sm mx-auto" 
+                                                style="width: 32px; height: 32px; transition: all 0.2s ease;" 
+                                                type="button" data-bs-toggle="dropdown" aria-expanded="false" 
+                                                data-name="{{ .name }}"
+                                                onmouseover="this.classList.replace('btn-light', 'btn-primary'); this.classList.replace('text-muted', 'text-white');" 
+                                                onmouseout="this.classList.replace('btn-primary', 'btn-light'); this.classList.replace('text-white', 'text-muted');">
                                             <i data-lucide="more-vertical" style="width: 18px; height: 18px;"></i>
                                         </button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 mt-1 py-2 position-absolute" style="z-index: 1050; min-width: 180px;">
+                                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 mt-1 py-2" style="z-index: 1050; min-width: 180px;">
                                             <li><a class="dropdown-item py-2 px-3 fw-medium d-flex align-items-center gap-2" href="javascript:void(0)" onclick="openDetailsModal('{{ .id }}')"><i data-lucide="eye" style="width: 16px; height: 16px;"></i> {{ t "details" $.Lang }}</a></li>
-                                            <li><a class="dropdown-item py-2 px-3 fw-medium d-flex align-items-center gap-2" href="javascript:void(0)" onclick="openAddStockModal('{{ .id }}', '{{ .name }}')"><i data-lucide="package-plus" style="width: 16px; height: 16px;"></i> {{ t "add_stock_batch" $.Lang }}</a></li>
+                                            <li><a class="dropdown-item py-2 px-3 fw-medium d-flex align-items-center gap-2" 
+                                                   href="javascript:void(0)" 
+                                                   hx-get="/api/products/details?id={{ .id }}" 
+                                                   hx-target="#modal-container"
+                                                   onclick="window.autoOpenLedger = true">
+                                                <i data-lucide="list" style="width: 16px; height: 16px;"></i> {{ t "stock_ledger" $.Lang }}</a></li>
+                                            {{ if eq .status "active" }}
+                                            <li><a class="dropdown-item py-2 px-3 fw-medium d-flex align-items-center gap-2" href="javascript:void(0)" onclick="openAddStockModal('{{ .id }}', this.closest('.dropdown').querySelector('button').getAttribute('data-name'))"><i data-lucide="package-plus" style="width: 16px; height: 16px;"></i> {{ t "add_stock_batch" $.Lang }}</a></li>
+                                            {{ end }}
                                             <li><a class="dropdown-item py-2 px-3 fw-medium d-flex align-items-center gap-2" href="javascript:void(0)" onclick="openEditModal('{{ .id }}')"><i data-lucide="edit" style="width: 16px; height: 16px;"></i> {{ t "edit_product" $.Lang }}</a></li>
+                                            {{ if and (eq $.CurrentUser.Role "admin") (not .is_verified) }}
                                             <li><hr class="dropdown-divider my-1"></li>
+                                            <li><a class="dropdown-item py-2 px-3 fw-medium text-success d-flex align-items-center gap-2" href="javascript:void(0)" onclick="approveProduct('{{ .id }}', this.closest('.dropdown').querySelector('button').getAttribute('data-name'))"><i data-lucide="shield-check" style="width: 16px; height: 16px;"></i> {{ t "approve" $.Lang }}</a></li>
+                                            {{ end }}
+                                            <li><hr class="dropdown-divider my-1"></li>
+                                            {{ if eq .status "active" }}
+                                            <li><a class="dropdown-item py-2 px-3 fw-medium text-warning d-flex align-items-center gap-2" href="javascript:void(0)" onclick="toggleProductStatus('{{ .id }}', this.closest('.dropdown').querySelector('button').getAttribute('data-name'), 'active')"><i data-lucide="power-off" style="width: 16px; height: 16px;"></i> {{ t "deactivate" $.Lang }}</a></li>
+                                            {{ else }}
+                                            <li><a class="dropdown-item py-2 px-3 fw-medium text-success d-flex align-items-center gap-2" href="javascript:void(0)" onclick="toggleProductStatus('{{ .id }}', this.closest('.dropdown').querySelector('button').getAttribute('data-name'), 'inactive')"><i data-lucide="power" style="width: 16px; height: 16px;"></i> {{ t "activate" $.Lang }}</a></li>
+                                            {{ end }}
                                             <li><a class="dropdown-item py-2 px-3 fw-medium text-danger d-flex align-items-center gap-2" href="javascript:void(0)" hx-delete="/api/products/delete?id={{ .id }}" hx-confirm="{{ t `confirm_delete_product` $.Lang }}"><i data-lucide="trash-2" style="width: 16px; height: 16px;"></i> {{ t "delete" $.Lang }}</a></li>
                                         </ul>
                                     </div>
@@ -277,14 +358,16 @@
                                         <option value="">{{ t "select_unit" .Lang }}</option>
                                         <option value="Box">{{ t "unit_box" .Lang }}</option>
                                         <option value="Strip">{{ t "unit_strip" .Lang }}</option>
+                                        <option value="Blister">{{ t "unit_blister" .Lang }}</option>
+                                        <option value="Sheet">{{ t "unit_sheet" .Lang }}</option>
                                         <option value="Pcs">{{ t "unit_pcs_smallest" .Lang }}</option>
                                     </select>
                                 </div>
                                 <div class="col-md-3">
-                                    <div id="subUnitWrapper" style="display: none;">
-                                        <label class="form-label small fw-bold text-muted">{{ t "sub_unit" .Lang }}</label>
-                                        <select name="sub_unit" id="subUnit" class="form-select rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" onchange="updateTotalLabel(); updateUnitLabels();">
-                                            <option value="">{{ t "select_sub_unit" .Lang }}</option>
+                                    <div id="baseUnitWrapper" style="display: none;">
+                                        <label class="form-label small fw-bold text-muted">{{ t "base_unit" .Lang }}</label>
+                                        <select name="base_unit" id="baseUnit" class="form-select rounded-3 py-2 px-3 border-light-subtle shadow-none bg-light bg-opacity-50" onchange="updateTotalLabel(); updateUnitLabels();">
+                                            <option value="">{{ t "select_base_unit" .Lang }}</option>
                                             <option value="Strip">{{ t "unit_strip" .Lang }}</option>
                                             <option value="Pcs">{{ t "unit_pcs_smallest" .Lang }}</option>
                                         </select>
@@ -543,6 +626,7 @@
     </div>
 </div>
 
+
 <!-- Modal Container -->
 <div id="modal-container"></div>
 
@@ -555,6 +639,61 @@
             modal = new bootstrap.Modal(el);
         }
         return modal;
+    }
+
+    function approveProduct(id, name) {
+        if (!confirm('{{ t "confirm_approve_product" .Lang }}')) return;
+        fetch('/api/products/verify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': '{{ .CSRFToken }}'
+            },
+            body: JSON.stringify({ id: parseInt(id) })
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.status === 'success') {
+                if (window.showToast) window.showToast('{{ t "approved_text" .Lang }}: ' + name, 'success');
+                setTimeout(() => window.location.reload(), 1200);
+            } else {
+                throw new Error(d.error || 'Failed to approve product');
+            }
+        })
+        .catch(err => {
+            console.error('Approve error:', err);
+            if (window.showToast) window.showToast(err.message, 'error');
+        });
+    }
+
+    function toggleProductStatus(id, name, currentStatus) {
+        const isActivating = currentStatus === 'inactive';
+        const confirmMsg = isActivating ? '{{ t "confirm_activate_product" .Lang }}' : '{{ t "confirm_deactivate_product" .Lang }}';
+        
+        if (!confirm(confirmMsg)) return;
+
+        fetch('/api/products/toggle-status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': '{{ .CSRFToken }}'
+            },
+            body: JSON.stringify({ id: parseInt(id) })
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.status === 'success') {
+                const toastMsg = isActivating ? '{{ t "product_activated" .Lang }}' : '{{ t "product_deactivated" .Lang }}';
+                if (window.showToast) window.showToast(toastMsg, 'success');
+                setTimeout(() => window.location.reload(), 1200);
+            } else {
+                throw new Error(d.error || 'Failed to toggle status');
+            }
+        })
+        .catch(err => {
+            console.error('Status toggle error:', err);
+            if (window.showToast) window.showToast(err.message, 'error');
+        });
     }
 
     function openAddModal() {
@@ -571,8 +710,8 @@
         document.getElementById('purchasePrice').value = '';
         document.getElementById('sellingPrice').value = '';
         document.getElementById('unit').value = '';
-        if (document.getElementById('subUnit')) {
-            document.getElementById('subUnit').value = '';
+        if (document.getElementById('baseUnit')) {
+            document.getElementById('baseUnit').value = '';
         }
         document.getElementById('itemsPerUnit').value = '';
         document.getElementById('minStock').value = '';
@@ -700,7 +839,7 @@
                     document.getElementById('detailPurchasePrice').innerText = `Rp ${p.purchase_price}`;
                     document.getElementById('detailSellingPrice').innerText = `Rp ${p.selling_price}`;
                     document.getElementById('detailUnit').innerText = p.unit;
-                    document.getElementById('detailItemsPerUnit').innerText = `${p.items_per_unit} ${p.sub_unit || 'Pcs'}/${p.unit}`;
+                    document.getElementById('detailItemsPerUnit').innerText = `${p.items_per_unit} ${p.base_unit || 'Pcs'}/${p.unit}`;
                     document.getElementById('detailTotalStock').innerText = `${p.total_stock} Pcs`;
                     
                     const tbody = document.getElementById('detailBatchesBody');
@@ -769,8 +908,8 @@
                     
                     toggleItemsPerUnit();
                     
-                    if (document.getElementById('subUnit')) {
-                        document.getElementById('subUnit').value = p.sub_unit || '';
+                    if (document.getElementById('baseUnit')) {
+                        document.getElementById('baseUnit').value = p.base_unit || '';
                     }
                     document.getElementById('itemsPerUnit').value = p.items_per_unit || '1';
                     document.getElementById('minStock').value = p.min_stock || '0';
@@ -798,36 +937,56 @@
 
     function toggleItemsPerUnit() {
         const unit = document.getElementById('unit').value;
-        const subUnitWrapper = document.getElementById('subUnitWrapper');
-        const subUnit = document.getElementById('subUnit');
+        const baseUnitWrapper = document.getElementById('baseUnitWrapper');
+        const baseUnit = document.getElementById('baseUnit');
         const itemsWrapper = document.getElementById('itemsPerUnitWrapper');
         const itemsInput = document.getElementById('itemsPerUnit');
         
         if (unit === 'Box') {
-            if (subUnitWrapper) subUnitWrapper.style.display = 'block';
-            if (subUnit) {
-                subUnit.innerHTML = `
-                    <option value="">{{ t "select_sub_unit" .Lang }}</option>
-                    <option value="Strip">{{ t "unit_strip" .Lang }}</option>
+            if (baseUnitWrapper) baseUnitWrapper.style.display = 'block';
+            if (baseUnit) {
+                baseUnit.innerHTML = `
+                    <option value="">{{ t "select_base_unit" .Lang }}</option>
+                    <option value="Ampoule">{{ t "unit_ampule" .Lang }}</option>
+                    <option value="Bottle">{{ t "unit_botol" .Lang }}</option>
+                    <option value="Sachet">{{ t "unit_sachet" .Lang }}</option>
+                    <option value="Tube">{{ t "unit_tube" .Lang }}</option>
+                    <option value="Vial">{{ t "unit_vial" .Lang }}</option>
                     <option value="Pcs">{{ t "unit_pcs_smallest" .Lang }}</option>
                 `;
-                subUnit.required = true;
+                baseUnit.required = true;
             }
             if (itemsWrapper) itemsWrapper.style.display = 'block';
             if (itemsInput) itemsInput.required = true;
         } else if (unit === 'Strip') {
-            if (subUnitWrapper) subUnitWrapper.style.display = 'block';
-            if (subUnit) {
-                subUnit.innerHTML = `<option value="Pcs" selected>{{ t "unit_pcs_smallest" .Lang }}</option>`;
-                subUnit.required = true;
+            if (baseUnitWrapper) baseUnitWrapper.style.display = 'block';
+            if (baseUnit) {
+                baseUnit.innerHTML = `<option value="Tablet" selected>{{ t "unit_tablet" .Lang }}</option>`;
+                baseUnit.required = true;
+            }
+            if (itemsWrapper) itemsWrapper.style.display = 'block';
+            if (itemsInput) itemsInput.required = true;
+        } else if (unit === 'Blister') {
+            if (baseUnitWrapper) baseUnitWrapper.style.display = 'block';
+            if (baseUnit) {
+                baseUnit.innerHTML = `<option value="Capsule" selected>{{ t "unit_capsule" .Lang }}</option>`;
+                baseUnit.required = true;
+            }
+            if (itemsWrapper) itemsWrapper.style.display = 'block';
+            if (itemsInput) itemsInput.required = true;
+        } else if (unit === 'Sheet') {
+            if (baseUnitWrapper) baseUnitWrapper.style.display = 'block';
+            if (baseUnit) {
+                baseUnit.innerHTML = `<option value="Pcs" selected>{{ t "unit_pcs_smallest" .Lang }}</option>`;
+                baseUnit.required = true;
             }
             if (itemsWrapper) itemsWrapper.style.display = 'block';
             if (itemsInput) itemsInput.required = true;
         } else {
-            if (subUnitWrapper) subUnitWrapper.style.display = 'none';
-            if (subUnit) {
-                subUnit.value = '';
-                subUnit.required = false;
+            if (baseUnitWrapper) baseUnitWrapper.style.display = 'none';
+            if (baseUnit) {
+                baseUnit.value = '';
+                baseUnit.required = false;
             }
             if (itemsWrapper) itemsWrapper.style.display = 'none';
             if (itemsInput) {
@@ -840,11 +999,11 @@
     }
 
     function updateUnitLabels() {
-        const subUnitEl = document.getElementById('subUnit');
+        const baseUnitEl = document.getElementById('baseUnit');
         const unitEl = document.getElementById('unit');
-        const subUnit = (subUnitEl && subUnitEl.value) ? subUnitEl.value : '';
+        const baseUnit = (baseUnitEl && baseUnitEl.value) ? baseUnitEl.value : '';
         const unit = (unitEl && unitEl.value) ? unitEl.value : '';
-        const effectiveUnit = subUnit || unit || 'Pcs';
+        const effectiveUnit = baseUnit || unit || 'Pcs';
         
         document.querySelectorAll('.unit-suffix').forEach(el => {
             if (el.parentElement.id === 'labelMinStock') {
@@ -858,16 +1017,16 @@
     function updateTotalLabel() {
         const initialStock = parseFloat(document.getElementById('initialStock').value) || 0;
         const itemsPerUnit = parseInt(document.getElementById('itemsPerUnit').value) || 1;
-        const subUnitEl = document.getElementById('subUnit');
+        const baseUnitEl = document.getElementById('baseUnit');
         const unitEl = document.getElementById('unit');
         
-        const subUnit = (subUnitEl && subUnitEl.value) ? subUnitEl.value : 'Pcs';
+        const baseUnit = (baseUnitEl && baseUnitEl.value) ? baseUnitEl.value : 'Pcs';
         const unit = (unitEl && unitEl.value) ? unitEl.value : 'Pcs';
         
         const label = document.getElementById('totalAddedLabel');
         if (label) {
             if (unit === 'Box' || unit === 'Strip') {
-                label.innerText = (initialStock * itemsPerUnit) + ' ' + subUnit;
+                label.innerText = (initialStock * itemsPerUnit) + ' ' + baseUnit;
             } else {
                 label.innerText = initialStock + ' ' + unit;
             }
@@ -970,6 +1129,7 @@
             document.body.style.paddingRight = '0';
         });
     }
+
 </script>
 
 {{ end }}

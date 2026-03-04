@@ -9,138 +9,337 @@
                 </h5>
                 <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body p-4">
-                <div class="row g-4">
-                    <!-- Basic Info -->
-                    <div class="col-md-6">
-                        <div class="p-3 bg-light rounded-4 h-100">
-                            <h6 class="fw-bold mb-3 d-flex align-items-center gap-2 text-muted">
-                                <i data-lucide="info" style="width:16px; height:16px;"></i> {{ t "basic_information" .Lang }}
-                            </h6>
-                            <table class="table table-borderless table-sm small mb-0">
-                                <tbody>
-                                    <tr>
-                                        <td class="text-muted w-50">Name</td>
-                                        <td class="fw-bold text-dark">{{ .Product.name }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-muted">SKU</td>
-                                        <td class="fw-bold text-dark">{{ .Product.sku_code }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-muted">{{ t "category" .Lang }}</td>
-                                        <td class="fw-bold text-dark">{{ .Product.category }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-muted">{{ t "therapeutic_class" .Lang }}</td>
-                                        <td class="fw-bold text-dark">{{ if .Product.therapeutic_class }}{{ .Product.therapeutic_class }}{{ else }}-{{ end }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-muted">{{ t "storage_location" .Lang }}</td>
-                                        <td class="fw-bold text-dark">{{ if .Product.storage_location }}{{ .Product.storage_location }}{{ else }}-{{ end }}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+            <div class="modal-body p-0">
+                <!-- Tabs Navigation -->
+                <ul class="nav nav-tabs border-bottom px-4 pt-3 bg-light" id="productDetailTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-bold border-0 bg-transparent py-2 pb-3 position-relative" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-pane" type="button" role="tab" style="color: var(--text-main);">
+                            {{ t "product_info" .Lang }}
+                            <div class="active-indicator"></div>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold border-0 bg-transparent py-2 pb-3 position-relative" id="ledger-tab" data-bs-toggle="tab" data-bs-target="#ledger-pane" type="button" role="tab" style="color: var(--text-muted);" onclick="loadStockLedger('{{ .Product.id }}', '{{ .Product.name }}')">
+                            {{ t "stock_ledger" .Lang }}
+                            <div class="active-indicator"></div>
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="productDetailTabsContent">
+                    <!-- Tab 1: Product Info & Batches -->
+                    <div class="tab-pane fade show active p-4" id="info-pane" role="tabpanel" tabindex="0">
+                        <div class="row g-4">
+                            <!-- Basic Info -->
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded-4 h-100 border">
+                                    <h6 class="fw-bold mb-3 d-flex align-items-center gap-2 text-muted">
+                                        <i data-lucide="info" style="width:16px; height:16px;"></i> {{ t "basic_information" .Lang }}
+                                    </h6>
+                                    <table class="table table-borderless table-sm small mb-0">
+                                        <tbody>
+                                            <tr>
+                                                <td class="text-muted w-50">Name</td>
+                                                <td class="fw-bold text-dark">{{ .Product.name }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted">SKU</td>
+                                                <td class="fw-bold text-dark">{{ .Product.sku_code }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted">{{ t "category" .Lang }}</td>
+                                                <td class="fw-bold text-dark">{{ .Product.category }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted">{{ t "therapeutic_class" .Lang }}</td>
+                                                <td class="fw-bold text-dark">{{ if .Product.therapeutic_class }}{{ .Product.therapeutic_class }}{{ else }}-{{ end }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted">{{ t "storage_location" .Lang }}</td>
+                                                <td class="fw-bold text-dark">{{ if .Product.storage_location }}{{ .Product.storage_location }}{{ else }}-{{ end }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Pricing & Stock -->
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded-4 h-100 border">
+                                    <h6 class="fw-bold mb-3 d-flex align-items-center gap-2 text-muted">
+                                        <i data-lucide="tag" style="width:16px; height:16px;"></i> Pricing & Units
+                                    </h6>
+                                    <table class="table table-borderless table-sm small mb-0">
+                                        <tbody>
+                                            {{ if or (eq $.UserRole "admin") (eq $.UserRole "owner") }}
+                                            <tr>
+                                                <td class="text-muted w-50">{{ t "purchase_price" .Lang }}</td>
+                                                <td class="fw-bold text-success">Rp {{ formatCurrency .Product.purchase_price }}</td>
+                                            </tr>
+                                            {{ end }}
+                                            <tr>
+                                                <td class="text-muted">{{ t "selling_price" .Lang }}</td>
+                                                <td class="fw-bold text-primary">Rp {{ formatCurrency .Product.selling_price }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted">Main Unit</td>
+                                                <td class="fw-bold text-dark">{{ .Product.unit }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted">Items per Unit</td>
+                                                <td class="fw-bold text-dark">{{ .Product.items_per_unit }} {{ if .Product.base_unit }}{{ .Product.base_unit }}{{ else }}Pcs{{ end }}/{{ .Product.unit }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted">Total Stock</td>
+                                                <td class="fw-bold text-dark">{{ .Product.total_stock }} Pcs</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Batches Table -->
+                            <div class="col-12 mt-2">
+                                <h6 class="fw-bold mb-3 d-flex align-items-center gap-2 text-muted">
+                                    <i data-lucide="layers" style="width:16px; height:16px;"></i> {{ t "batch_inventory" .Lang }}
+                                </h6>
+                                <div class="table-responsive bg-white rounded-4 border overflow-hidden">
+                                    <table class="table table-hover table-sm mb-0">
+                                        <thead class="bg-light">
+                                            <tr>
+                                                <th class="ps-3 py-2 small fw-bold text-muted">{{ t "batch_no" .Lang }}</th>
+                                                <th class="py-2 small fw-bold text-muted">{{ t "expiry_date" .Lang }}</th>
+                                                <th class="py-2 small fw-bold text-muted">Initial Qty</th>
+                                                <th class="py-2 small fw-bold text-muted">Current Stock</th>
+                                                <th class="py-2 small fw-bold text-muted text-center">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {{ if not .Batches }}
+                                            <tr>
+                                                <td colspan="5" class="text-center text-muted py-4 small">{{ t "no_batches_found" .Lang }}</td>
+                                            </tr>
+                                            {{ else }}
+                                                {{ range .Batches }}
+                                                <tr>
+                                                    <td class="ps-3 py-2 small fw-medium">{{ .batch_number }}</td>
+                                                    <td class="py-2 small fw-medium">
+                                                        {{ $days := daysUntil .expiry_date }}
+                                                        <span class="{{ if le $days 0 }}text-danger{{ else if lt $days 90 }}text-orange{{ else if lt $days 180 }}text-warning{{ else }}text-dark{{ end }}">
+                                                            {{ formatShortDate .expiry_date }}
+                                                            {{ if le $days 0 }}
+                                                                <br><small class="text-danger fw-bold">{{ t "already_expired" $.Lang }}</small>
+                                                            {{ else if lt $days 180 }}
+                                                                <br><small class="{{ if lt $days 90 }}text-orange{{ else }}text-warning{{ end }} fw-bold">{{ $days }} {{ t "days" $.Lang }}</small>
+                                                            {{ end }}
+                                                        </span>
+                                                    </td>
+                                                    <td class="py-2 small fw-medium">{{ .initial_qty }} {{ $.Product.unit }}</td>
+                                                    <td class="py-2 small fw-bold text-dark">{{ .current_stock }} Pcs</td>
+                                                    <td class="py-2 small text-center">
+                                                        {{ if eq .is_verified 1 }}
+                                                        <span class="badge bg-success bg-opacity-10 text-success border-0 px-2">Verified</span>
+                                                        {{ else }}
+                                                        <span class="badge bg-warning bg-opacity-10 text-warning border-0 px-2">Pending</span>
+                                                        {{ end }}
+                                                    </td>
+                                                </tr>
+                                                {{ end }}
+                                            {{ end }}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Pricing & Stock -->
-                    <div class="col-md-6">
-                        <div class="p-3 bg-light rounded-4 h-100">
-                            <h6 class="fw-bold mb-3 d-flex align-items-center gap-2 text-muted">
-                                <i data-lucide="tag" style="width:16px; height:16px;"></i> Pricing & Units
-                            </h6>
-                            <table class="table table-borderless table-sm small mb-0">
-                                <tbody>
-                                    <tr>
-                                        <td class="text-muted w-50">{{ t "purchase_price" .Lang }}</td>
-                                        <td class="fw-bold text-success">Rp {{ .Product.purchase_price }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-muted">{{ t "selling_price" .Lang }}</td>
-                                        <td class="fw-bold text-primary">Rp {{ .Product.selling_price }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-muted">Main Unit</td>
-                                        <td class="fw-bold text-dark">{{ .Product.unit }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-muted">Items per Unit</td>
-                                        <td class="fw-bold text-dark">{{ .Product.items_per_unit }} {{ if .Product.sub_unit }}{{ .Product.sub_unit }}{{ else }}Pcs{{ end }}/{{ .Product.unit }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-muted">Total Stock</td>
-                                        <td class="fw-bold text-dark">{{ .Product.total_stock }} Pcs</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                    <!-- Tab 2: Stock Ledger -->
+                    <div class="tab-pane fade p-4" id="ledger-pane" role="tabpanel" tabindex="0">
+                        <!-- Ledger Filters -->
+                        <div class="row g-3 mb-4 align-items-end">
+                            <div class="col-md-5">
+                                <label class="form-label small fw-bold text-muted">{{ t "start_date" .Lang }}</label>
+                                <input type="date" id="modalLedgerStartDate" class="form-control rounded-3 border-light shadow-none bg-light bg-opacity-50">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small fw-bold text-muted">{{ t "end_date" .Lang }}</label>
+                                <input type="date" id="modalLedgerEndDate" class="form-control rounded-3 border-light shadow-none bg-light bg-opacity-50">
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-dark w-100 rounded-3 fw-bold py-2" onclick="refreshModalLedger('{{ .Product.id }}')">
+                                    <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+                                </button>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Batches Table -->
-                    <div class="col-12 mt-4">
-                        <h6 class="fw-bold mb-3 d-flex align-items-center gap-2 text-muted">
-                            <i data-lucide="layers" style="width:16px; height:16px;"></i> {{ t "batch_inventory" .Lang }}
-                        </h6>
-                        <div class="table-responsive bg-white rounded-3 shadow-sm border">
-                            <table class="table table-hover table-sm mb-0">
-                                <thead class="table-light">
+                        <!-- Starting Balance -->
+                        <div class="d-flex justify-content-between align-items-center p-3 bg-primary bg-opacity-10 rounded-4 mb-4">
+                            <div class="d-flex align-items-center gap-2 text-primary">
+                                <i data-lucide="history" style="width: 20px; height: 20px;"></i>
+                                <span class="fw-bold small text-uppercase">{{ t "starting_balance" .Lang }}</span>
+                            </div>
+                            <span class="fs-5 fw-bold text-primary" id="modalLedgerStartBalance">0 Pcs</span>
+                        </div>
+
+                        <!-- Ledger Table -->
+                        <div id="modalLedgerLoading" class="text-center py-5 d-none">
+                            <div class="spinner-border text-primary" role="status"></div>
+                        </div>
+
+                        <div class="table-responsive rounded-4 border overflow-hidden">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light">
                                     <tr>
-                                        <th class="ps-3 py-2 small fw-bold text-muted">{{ t "batch_no" .Lang }}</th>
-                                        <th class="py-2 small fw-bold text-muted">{{ t "expiry_date" .Lang }}</th>
-                                        <th class="py-2 small fw-bold text-muted">Initial Qty</th>
-                                        <th class="py-2 small fw-bold text-muted">Current Stock</th>
-                                        <th class="py-2 small fw-bold text-muted">Status</th>
+                                        <th class="ps-4 py-3 text-muted small fw-bold text-uppercase">{{ t "date" .Lang }}</th>
+                                        <th class="py-3 text-muted small fw-bold text-uppercase">{{ t "description" .Lang }}</th>
+                                        <th class="py-3 text-muted small fw-bold text-uppercase text-center">{{ t "in_caps" .Lang }}</th>
+                                        <th class="py-3 text-muted small fw-bold text-uppercase text-center">{{ t "out_caps" .Lang }}</th>
+                                        <th class="pe-4 py-3 text-muted small fw-bold text-uppercase text-end">{{ t "balance" .Lang }}</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    {{ if not .Batches }}
-                                    <tr>
-                                        <td colspan="4" class="text-center text-muted py-3 small">No batches found</td>
-                                    </tr>
-                                    {{ else }}
-                                        {{ range .Batches }}
-                                        <tr>
-                                            <td class="ps-3 py-2 small fw-medium">{{ .batch_number }}</td>
-                                            <td class="py-2 small fw-medium">{{ .expiry_date }}</td>
-                                            <td class="py-2 small fw-medium">{{ .initial_qty }} {{ $.Product.unit }}</td>
-                                            <td class="py-2 small fw-medium">{{ .current_stock }} Pcs</td>
-                                            <td class="py-2 small">
-                                                {{ if eq .is_verified true }}
-                                                <span class="badge bg-success bg-opacity-10 text-success border-0">Verified</span>
-                                                {{ else }}
-                                                <span class="badge bg-warning bg-opacity-10 text-warning border-0">Pending</span>
-                                                {{ end }}
-                                            </td>
-                                        </tr>
-                                        {{ end }}
-                                    {{ end }}
+                                <tbody id="modalLedgerTableBody">
+                                    <!-- Populated via JS -->
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
             </div>
+            <style>
+                .nav-tabs .nav-link.active {
+                    color: var(--primary-color) !important;
+                }
+                .nav-tabs .nav-link .active-indicator {
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    height: 3px;
+                    background: var(--primary-color);
+                    border-radius: 3px 3px 0 0;
+                    display: none;
+                }
+                .nav-tabs .nav-link.active .active-indicator {
+                    display: block;
+                }
+            </style>
             <div class="modal-footer border-0 p-4 bg-light">
-                <button type="button" class="btn btn-secondary px-4 py-2 rounded-3 fw-bold" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary px-4 py-2 rounded-3 fw-bold" data-bs-dismiss="modal">{{ t "close" .Lang }}</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // Initialize icons for the newly loaded modal
-    if (window.lucide) {
-        window.lucide.createIcons();
-    }
-    
-    // Create and show modal
-    var myModal = new bootstrap.Modal(document.getElementById('productDetailsModal'));
-    myModal.show();
+    (function() {
+        // Initialize icons
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+        
+        // Show modal
+        var myModal = new bootstrap.Modal(document.getElementById('productDetailsModal'));
+        myModal.show();
 
-    // Clean up HTMX container when modal is closed
-    document.getElementById('productDetailsModal').addEventListener('hidden.bs.modal', function (event) {
-        document.getElementById('modal-container').innerHTML = ''; // clears the modal from DOM
-    });
+        // Check if we should auto-open the ledger tab
+        if (window.autoOpenLedger) {
+            const ledgerTab = document.getElementById('ledger-tab');
+            const tab = new bootstrap.Tab(ledgerTab);
+            tab.show();
+            window.autoOpenLedger = false; // Reset
+        }
+
+        // Cleanup
+        document.getElementById('productDetailsModal').addEventListener('hidden.bs.modal', function () {
+            document.getElementById('modal-container').innerHTML = '';
+        });
+
+        // Tab switching logic for styling
+        document.querySelectorAll('#productDetailTabs button').forEach(button => {
+            button.addEventListener('shown.bs.tab', function (event) {
+                document.querySelectorAll('#productDetailTabs button').forEach(b => b.style.color = 'var(--text-muted)');
+                event.target.style.color = 'var(--text-main)';
+            });
+        });
+    })();
+
+    function loadStockLedger(id, name) {
+        // Set default dates
+        const end = new Date();
+        const start = new Date();
+        start.setDate(start.getDate() - 30);
+        
+        document.getElementById('modalLedgerStartDate').value = start.toISOString().split('T')[0];
+        document.getElementById('modalLedgerEndDate').value = end.toISOString().split('T')[0];
+        
+        refreshModalLedger(id);
+    }
+
+    function refreshModalLedger(id) {
+        const start = document.getElementById('modalLedgerStartDate').value;
+        const end = document.getElementById('modalLedgerEndDate').value;
+        const loading = document.getElementById('modalLedgerLoading');
+        const content = document.getElementById('modalLedgerTableBody');
+        const startBalanceEl = document.getElementById('modalLedgerStartBalance');
+        
+        loading.classList.remove('d-none');
+        content.innerHTML = '';
+        
+        fetch(`/api/products/ledger?id=${id}&start_date=${start}&end_date=${end}`)
+            .then(r => r.json())
+            .then(res => {
+                loading.classList.add('d-none');
+                if (res.status === 'success') {
+                    startBalanceEl.innerText = `${res.start_balance} Pcs`;
+                    
+                    let runningBalance = res.start_balance;
+                    if (!res.entries || res.entries.length === 0) {
+                        content.innerHTML = `<tr><td colspan="5" class="text-center py-5 text-muted fst-italic">No transaction history found</td></tr>`;
+                        return;
+                    }
+                    
+                    res.entries.forEach(entry => {
+                        const qty = entry.quantity;
+                        let inQty = '-', outQty = '-';
+                        if (entry.type === 'in') {
+                            inQty = `<span class="fw-bold text-success">+${qty}</span>`;
+                            runningBalance += qty;
+                        } else {
+                            outQty = `<span class="fw-bold text-danger">-${qty}</span>`;
+                            runningBalance -= qty;
+                        }
+                        
+                        const date = new Date(entry.created_at);
+                        const dateStr = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+                        const timeStr = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+                        const row = `
+                            <tr>
+                                <td class="ps-4 py-3">
+                                    <div class="d-flex flex-column">
+                                        <span class="fw-bold text-dark small">${dateStr}</span>
+                                        <span class="smaller text-muted">${timeStr}</span>
+                                    </div>
+                                </td>
+                                <td class="py-3">
+                                    <div class="d-flex flex-column">
+                                        <span class="small fw-medium text-dark">${entry.description}</span>
+                                        <span class="smaller text-muted">Ref: #${entry.reference_id}</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 text-center small">${inQty}</td>
+                                <td class="py-3 text-center small">${outQty}</td>
+                                <td class="pe-4 py-3 text-end fw-bold text-dark small">${runningBalance} Pcs</td>
+                            </tr>
+                        `;
+                        content.insertAdjacentHTML('beforeend', row);
+                    });
+                }
+            })
+            .catch(err => {
+                loading.classList.add('d-none');
+                console.error(err);
+            });
+    }
 </script>
 {{ end }}

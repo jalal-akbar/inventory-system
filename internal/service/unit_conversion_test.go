@@ -23,7 +23,7 @@ func TestUnitConversionLogic(t *testing.T) {
 		sku_code TEXT UNIQUE,
 		category TEXT,
 		unit TEXT,
-		sub_unit TEXT,
+		base_unit TEXT,
 		items_per_unit INTEGER,
 		storage_location TEXT,
 		purchase_price REAL,
@@ -71,7 +71,7 @@ func TestUnitConversionLogic(t *testing.T) {
 		price REAL,
 		subtotal REAL,
 		sale_unit TEXT,
-		sub_unit TEXT,
+		base_unit TEXT,
 		items_per_unit INTEGER
 	);
 	CREATE TABLE activity_logs (

@@ -19,6 +19,7 @@ type ProductBatchRepository interface {
 	GetExpiredCount() (int, error)
 	GetExpiringBatches(days int) ([]map[string]interface{}, error)
 	FindByID(id int) (*domain.ProductBatch, error)
+	GetProductStatus(productID int) (string, error)
 	WithTx(tx *sql.Tx) ProductBatchRepository
 }
 
@@ -93,18 +94,19 @@ func (r *mysqlBatchRepository) Create(b *domain.ProductBatch) (int, error) {
 }
 
 func (r *mysqlBatchRepository) GetWithProduct(id int) (map[string]interface{}, error) {
-	query := "SELECT b.*, p.name as product_name FROM product_batches b JOIN products p ON b.product_id = p.id WHERE b.id = ?"
+	query := "SELECT b.*, p.name as product_name, p.status as product_status FROM product_batches b JOIN products p ON b.product_id = p.id WHERE b.id = ?"
 	row := r.getDB().QueryRow(query, id)
 
 	var b domain.ProductBatch
-	var productName string
-	err := row.Scan(&b.ID, &b.ProductID, &b.BatchNumber, &b.ExpiryDate, &b.InitialQty, &b.CurrentStock, &b.PurchasePrice, &b.SellingPrice, &b.IsVerified, &b.CreatedAt, &productName)
+	var productName, productStatus string
+	err := row.Scan(&b.ID, &b.ProductID, &b.BatchNumber, &b.ExpiryDate, &b.InitialQty, &b.CurrentStock, &b.PurchasePrice, &b.SellingPrice, &b.IsVerified, &b.CreatedAt, &productName, &productStatus)
 	if err != nil {
 		return nil, err
 	}
 	return map[string]interface{}{
-		"batch":        b,
-		"product_name": productName,
+		"batch":          b,
+		"product_name":   productName,
+		"product_status": productStatus,
 	}, nil
 }
 
@@ -133,13 +135,13 @@ func (r *mysqlBatchRepository) SetStock(id, stock int) error {
 
 func (r *mysqlBatchRepository) GetExpiringCount(days int) (int, error) {
 	var count int
-	err := r.getDB().QueryRow("SELECT COUNT(*) FROM product_batches WHERE expiry_date <= date('now', '+' || ? || ' days') AND expiry_date >= date('now') AND current_stock > 0", days).Scan(&count)
+	err := r.getDB().QueryRow("SELECT COUNT(b.id) FROM product_batches b JOIN products p ON b.product_id = p.id WHERE p.status = 'active' AND p.is_verified = 1 AND b.is_verified = 1 AND b.expiry_date <= date('now', 'localtime', '+' || ? || ' days') AND b.expiry_date >= date('now', 'localtime') AND b.current_stock > 0", days).Scan(&count)
 	return count, err
 }
 
 func (r *mysqlBatchRepository) GetExpiredCount() (int, error) {
 	var count int
-	err := r.getDB().QueryRow("SELECT COUNT(*) FROM product_batches WHERE expiry_date < date('now') AND current_stock > 0").Scan(&count)
+	err := r.getDB().QueryRow("SELECT COUNT(b.id) FROM product_batches b JOIN products p ON b.product_id = p.id WHERE p.status = 'active' AND p.is_verified = 1 AND b.is_verified = 1 AND b.expiry_date < date('now', 'localtime') AND b.current_stock > 0").Scan(&count)
 	return count, err
 }
 
@@ -148,8 +150,9 @@ func (r *mysqlBatchRepository) GetExpiringBatches(days int) ([]map[string]interf
 		SELECT b.*, p.name as product_name 
 		FROM product_batches b 
 		JOIN products p ON b.product_id = p.id 
-		WHERE b.expiry_date <= date('now', '+' || ? || ' days') 
-		AND b.expiry_date >= date('now') 
+		WHERE p.status = 'active' AND p.is_verified = 1 AND b.is_verified = 1
+		AND b.expiry_date <= date('now', 'localtime', '+' || ? || ' days') 
+		AND b.expiry_date >= date('now', 'localtime') 
 		AND b.current_stock > 0
 		ORDER BY b.expiry_date ASC
 	`
@@ -186,4 +189,13 @@ func (r *mysqlBatchRepository) FindByID(id int) (*domain.ProductBatch, error) {
 		return nil, err
 	}
 	return b, nil
+}
+
+func (r *mysqlBatchRepository) GetProductStatus(productID int) (string, error) {
+	var status string
+	err := r.getDB().QueryRow("SELECT status FROM products WHERE id = ?", productID).Scan(&status)
+	if err != nil {
+		return "", err
+	}
+	return status, nil
 }

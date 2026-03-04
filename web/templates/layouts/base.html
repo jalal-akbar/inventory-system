@@ -37,11 +37,19 @@
                 options.headers = options.headers || {};
                 const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
                 if (token) {
-                    options.headers['X-CSRF-TOKEN'] = token;
+                    options.headers['X-CSRF-Token'] = token;
                 }
             }
             return originalFetch(url, options);
         };
+
+        // Global HTMX Interceptor for CSRF
+        document.addEventListener('htmx:configRequest', function(evt) {
+            const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            if (token) {
+                evt.detail.headers['X-CSRF-Token'] = token;
+            }
+        });
     </script>
     <style>
         .notification-dropdown { position: relative; }

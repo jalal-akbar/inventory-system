@@ -8,7 +8,7 @@ import (
 
 func CSRFProtect(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		session, _ := Store.Get(r, "inventory-session")
+		session := GetSessionObject(r)
 
 		if r.Method == "POST" || r.Method == "PUT" || r.Method == "DELETE" {
 			token := r.FormValue("csrf_token")
@@ -23,7 +23,7 @@ func CSRFProtect(next http.Handler) http.Handler {
 			}
 		}
 
-		// Ensure token exists for GET requests
+		// Ensure token exists for GET requests (or if missing in current session)
 		if _, ok := session.Values["csrf_token"].(string); !ok {
 			token := make([]byte, 32)
 			rand.Read(token)
@@ -36,7 +36,7 @@ func CSRFProtect(next http.Handler) http.Handler {
 }
 
 func GetCSRFToken(r *http.Request) string {
-	session, _ := Store.Get(r, "inventory-session")
+	session := GetSessionObject(r)
 	token, _ := session.Values["csrf_token"].(string)
 	return token
 }

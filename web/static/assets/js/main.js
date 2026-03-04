@@ -123,7 +123,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const clockDate = document.getElementById('global-live-date');
 
     if (clockContainer && clockTime && clockDate) {
-        const timezone = clockContainer.getAttribute('data-timezone') || 'UTC';
+        const timezone = clockContainer.getAttribute('data-timezone') ||
+            Intl.DateTimeFormat().resolvedOptions().timeZone;
         const lang = clockContainer.getAttribute('data-lang') || 'en';
 
         function updateGlobalClock() {
@@ -174,13 +175,13 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('sidebar-collapsed', document.body.classList.contains('sidebar-collapsed'));
         });
     }
-    
+
     // Global Backdrop Cleanup Logic
     // Fixes "shadow" issue where backdrops persist after navigation or HTMX swaps
     function cleanupBackdrops() {
         const backdrops = document.querySelectorAll('.modal-backdrop');
         const openModals = document.querySelectorAll('.modal.show');
-        
+
         if (backdrops.length > 0 && openModals.length === 0) {
             console.log('Cleaning up orphaned modal backdrops...');
             backdrops.forEach(b => b.remove());
@@ -193,7 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Run cleanup on page load and after HTMX swaps
     cleanupBackdrops();
     document.addEventListener('htmx:afterSwap', cleanupBackdrops);
-    
+
     // Add a small delay cleanup for edge cases
     setTimeout(cleanupBackdrops, 500);
 

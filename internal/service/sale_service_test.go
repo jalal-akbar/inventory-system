@@ -25,7 +25,7 @@ func TestSaleService_ProcessAndVoid(t *testing.T) {
 		sku_code TEXT UNIQUE,
 		category TEXT,
 		unit TEXT,
-		sub_unit TEXT,
+		base_unit TEXT,
 		items_per_unit INTEGER,
 		storage_location TEXT,
 		purchase_price REAL,
@@ -73,7 +73,7 @@ func TestSaleService_ProcessAndVoid(t *testing.T) {
 		price REAL,
 		subtotal REAL,
 		sale_unit TEXT,
-		sub_unit TEXT,
+		base_unit TEXT,
 		items_per_unit INTEGER
 	);
 	CREATE TABLE activity_logs (
@@ -197,7 +197,7 @@ func TestSaleService_DiscountValidation(t *testing.T) {
 		sku_code TEXT UNIQUE,
 		category TEXT,
 		unit TEXT,
-		sub_unit TEXT,
+		base_unit TEXT,
 		items_per_unit INTEGER,
 		storage_location TEXT,
 		purchase_price REAL,
@@ -245,7 +245,7 @@ func TestSaleService_DiscountValidation(t *testing.T) {
 		price REAL,
 		subtotal REAL,
 		sale_unit TEXT,
-		sub_unit TEXT,
+		base_unit TEXT,
 		items_per_unit INTEGER
 	);
 	CREATE TABLE activity_logs (
@@ -266,7 +266,7 @@ func TestSaleService_DiscountValidation(t *testing.T) {
 	s := NewSaleService(db, saleRepo, productRepo, batchRepo, logRepo)
 
 	// Setup 1 item: 1000 price, 10 stock
-	pID, err := productRepo.Create(&domain.Product{Name: "Test", Status: "active", SellingPrice: 1000, Unit: "Pcs", SubUnit: "Pcs", ItemsPerUnit: 1})
+	pID, err := productRepo.Create(&domain.Product{Name: "Test", Status: "active", SellingPrice: 1000, Unit: "Pcs", BaseUnit: "Pcs", ItemsPerUnit: 1})
 	if err != nil {
 		t.Fatalf("Failed to create product: %v", err)
 	}

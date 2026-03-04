@@ -44,6 +44,14 @@ func (s *batchService) AddBatch(b *domain.ProductBatch, requestedBy int) (int, e
 	batchRepo := s.batchRepo.WithTx(tx)
 	entryRepo := s.entryRepo.WithTx(tx)
 
+	status, err := batchRepo.GetProductStatus(b.ProductID)
+	if err != nil {
+		return 0, err
+	}
+	if status != "active" {
+		return 0, errors.New("cannot add batch to an inactive product")
+	}
+
 	bID, err := batchRepo.Create(b)
 	if err != nil {
 		return 0, err
@@ -90,6 +98,11 @@ func (s *batchService) AdjustStock(batchID int, qtyToRemove int, unit string, it
 	}
 	batch := data["batch"].(domain.ProductBatch)
 	productName := data["product_name"].(string)
+	productStatus := data["product_status"].(string)
+
+	if productStatus != "active" {
+		return errors.New("cannot adjust stock for an inactive product")
+	}
 
 	effectiveQty := qtyToRemove * itemsPerUnit
 	if batch.CurrentStock < effectiveQty {
@@ -136,6 +149,11 @@ func (s *batchService) PerformInventoryCheck(batchID int, actualStock int, unit 
 	}
 	batch := data["batch"].(domain.ProductBatch)
 	productName := data["product_name"].(string)
+	productStatus := data["product_status"].(string)
+
+	if productStatus != "active" {
+		return errors.New("cannot perform inventory check on an inactive product")
+	}
 
 	actualStockPCS := actualStock * itemsPerUnit
 	difference := actualStockPCS - batch.CurrentStock

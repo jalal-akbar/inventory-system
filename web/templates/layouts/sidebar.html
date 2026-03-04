@@ -27,11 +27,17 @@
                 <i data-lucide="chevron-down" class="chevron" style="width: 16px; height: 16px;"></i>
             </div>
             <div class="sidebar-group-items">
-                <a href="/products" class="sidebar-sub-item {{ if eq .currentPage "inventory" }}active{{ end }}">
-                    {{ t "manage_products" .Lang }}
+                <a href="/products" class="sidebar-sub-item {{ if eq .currentPage "inventory" }}active{{ end }}" style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>{{ t "manage_products" .Lang }}</span>
+                    {{ if and (eq .CurrentUser.Role "admin") (gt .PendingCount 0) }}
+                    <span class="badge rounded-pill fw-bold" style="background: #f97316; font-size: 0.7rem; min-width: 20px;">{{ .PendingCount }}</span>
+                    {{ end }}
                 </a>
                 <a href="/products/check" class="sidebar-sub-item {{ if eq .currentPage "stock_check" }}active{{ end }}">
                     {{ t "inventory_check" .Lang }}
+                </a>
+                <a href="/products/restock" class="sidebar-sub-item {{ if eq .currentPage "restock" }}active{{ end }}">
+                    {{ t "order_restock" .Lang }}
                 </a>
             </div>
         </div>

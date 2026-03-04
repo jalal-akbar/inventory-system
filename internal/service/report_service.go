@@ -17,6 +17,7 @@ type ReportService interface {
 	ExportRecentSalesCSV(w io.Writer, startDate, endDate, category string) error
 	ExportStockMutationCSV(w io.Writer, startDate, endDate string) error
 	GetHistory(startDate, endDate string) ([]map[string]interface{}, error)
+	GetProductLedger(productID int, startDate, endDate string) (int, []repository.LedgerEntry, error)
 }
 
 type reportService struct {
@@ -139,6 +140,10 @@ func (s *reportService) GetStockMutation(startDate, endDate string) ([]repositor
 
 func (s *reportService) GetHistory(startDate, endDate string) ([]map[string]interface{}, error) {
 	return s.reportRepo.GetHistory(startDate, endDate)
+}
+
+func (s *reportService) GetProductLedger(productID int, startDate, endDate string) (int, []repository.LedgerEntry, error) {
+	return s.reportRepo.GetProductLedger(productID, startDate, endDate)
 }
 
 func (s *reportService) ExportRecentSalesCSV(w io.Writer, startDate, endDate, category string) error {
