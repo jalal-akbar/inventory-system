@@ -9,18 +9,74 @@ document.addEventListener('DOMContentLoaded', () => {
     lucide.createIcons();
     initPriceMasking();
 
-    // Close search results when clicking outside
+    // Close search results when clicking outside (don't interfere with main.js dropdown logic)
     document.addEventListener('click', (e) => {
+        // Search results logic only
         const results = document.getElementById('search-results');
         const input = document.getElementById('name');
         if (results && !results.contains(e.target) && e.target !== input) {
             results.style.display = 'none';
         }
+        // Let main.js handle user dropdown
     });
 
     // Initialize Bulk Action Toolbar if it doesn't exist
     initBulkToolbar();
+
+    // Ensure user dropdown works on products page
+    const userProfile = document.getElementById('userProfileDropdown');
+    const userDropdown = document.getElementById('userDropdownContent');
+
+    if (userProfile && userDropdown) {
+        userProfile.addEventListener('click', (e) => {
+            e.stopPropagation();
+
+            // Use setTimeout to prevent timing issues
+            setTimeout(() => {
+                const isVisible = userDropdown.classList.contains('show');
+
+                if (isVisible) {
+                    userDropdown.classList.remove('show');
+                    userProfile.classList.remove('active');
+                    // Reset inline styles
+                    userDropdown.style.opacity = '';
+                    userDropdown.style.visibility = '';
+                    userDropdown.style.transform = '';
+                    userDropdown.style.zIndex = '';
+                } else {
+                    userDropdown.classList.add('show');
+                    userProfile.classList.add('active');
+                    // Force inline styles to override CSS
+                    userDropdown.style.opacity = '1';
+                    userDropdown.style.visibility = 'visible';
+                    userDropdown.style.transform = 'translateY(0)';
+                    userDropdown.style.zIndex = '1002';
+                    userDropdown.style.display = 'block';
+                }
+            }, 10); // Small delay
+        });
+    }
+
+    // Clear bulk selection when filter changes
+    const filterSelect = document.querySelector('select[name="filter"]');
+    if (filterSelect) {
+        filterSelect.addEventListener('change', clearSelection);
+    }
+
+    // Clear bulk selection when search is submitted
+    const searchForm = document.querySelector('form[method="GET"]');
+    if (searchForm) {
+        searchForm.addEventListener('submit', clearSelection);
+    }
+
+    // Hide bulk features for non-admin immediately
+    if (USER_ROLE !== 'admin') {
+        updateBulkActions();
+    }
 });
+
+// Global variable to track current selection context
+let currentSelectionContext = null;
 
 function initBulkToolbar() {
     if (document.getElementById('bulkActionToolbar')) return;
@@ -33,25 +89,15 @@ function initBulkToolbar() {
     toolbar.style.transform = 'translateX(-50%)';
     toolbar.style.zIndex = '1060';
     toolbar.style.minWidth = '300px';
-    
+
     toolbar.innerHTML = `
         <div class="d-flex align-items-center justify-content-between gap-4">
             <div class="d-flex align-items-center gap-2">
                 <span class="badge bg-primary" id="selectedCountText">0</span>
                 <span class="small fw-bold">Items Selected</span>
             </div>
-            <div class="d-flex gap-2">
-                <button class="btn btn-sm btn-outline-light border-0 fw-bold" onclick="bulkToggleStatus('active')">
-                    <i data-lucide="power" style="width: 16px; height: 16px;" class="me-1"></i> Activate
-                </button>
-                <button class="btn btn-sm btn-outline-warning border-0 fw-bold" onclick="bulkToggleStatus('inactive')">
-                    <i data-lucide="power-off" style="width: 16px; height: 16px;" class="me-1"></i> Deactivate
-                </button>
-                <button class="btn btn-sm btn-outline-danger border-0 fw-bold" onclick="bulkDelete()">
-                    <i data-lucide="trash-2" style="width: 16px; height: 16px;" class="me-1"></i> Delete
-                </button>
-                <div class="vr bg-white opacity-25"></div>
-                <button class="btn btn-sm btn-link text-white text-decoration-none small" onclick="clearSelection()">Cancel</button>
+            <div class="d-flex gap-2" id="bulkActionButtons">
+                <!-- Dynamic buttons will be inserted here -->
             </div>
         </div>
     `;
@@ -59,30 +105,236 @@ function initBulkToolbar() {
     if (window.lucide) lucide.createIcons();
 }
 
+function getProductContext(productData) {
+    if (!productData.isVerified && productData.status === 'active') {
+        return 'verify'; // New products waiting approval
+    } else if (productData.isVerified && productData.status === 'active') {
+        return 'deactivate'; // Active verified products
+    } else if (productData.status === 'inactive') {
+        return 'activate'; // Inactive products (regardless of verification)
+    }
+    return 'unknown';
+}
+
+function getProductDataFromRow(row) {
+    const isVerified = !row.querySelector('.badge-warning'); // No warning badge = verified
+
+    // Check for status badges - use correct class names
+    const activeBadge = row.querySelector('.badge.bg-success');
+    const inactiveBadge = row.querySelector('.badge.bg-danger');
+
+    let status = 'active'; // Default
+    if (activeBadge) {
+        status = 'active';
+    } else if (inactiveBadge) {
+        status = 'inactive';
+    }
+
+    return {
+        isVerified: isVerified,
+        status: status
+    };
+}
+
+function setSelectionContext(productData) {
+    currentSelectionContext = getProductContext(productData);
+    updateCheckboxStates();
+    showContextIndicator(currentSelectionContext);
+}
+
+function showContextIndicator(context) {
+    // Remove existing indicator
+    const existingIndicator = document.querySelector('.context-indicator');
+    if (existingIndicator) {
+        existingIndicator.remove();
+    }
+
+    if (!context) return;
+
+    // Create new indicator
+    const indicator = document.createElement('div');
+    indicator.className = `context-indicator ${context}`;
+
+    const messages = {
+        'verify': '🔍 Selecting products to verify',
+        'deactivate': '⏸️ Selecting products to deactivate',
+        'activate': '▶️ Selecting products to activate'
+    };
+
+    indicator.textContent = messages[context] || '📋 Selecting products';
+    document.body.appendChild(indicator);
+}
+
+function hideContextIndicator() {
+    const indicator = document.querySelector('.context-indicator');
+    if (indicator) {
+        indicator.remove();
+    }
+}
+
+function isSameContext(productData) {
+    return getProductContext(productData) === currentSelectionContext;
+}
+
+function updateCheckboxStates() {
+    if (!currentSelectionContext) {
+        // Enable all checkboxes if no context
+        document.querySelectorAll('.product-checkbox').forEach(cb => {
+            cb.disabled = false;
+            cb.parentElement.classList.remove('opacity-50');
+        });
+        // Remove row styling
+        document.querySelectorAll('tr').forEach(row => {
+            row.classList.remove('context-enabled', 'context-disabled');
+        });
+        return;
+    }
+
+    document.querySelectorAll('.product-checkbox').forEach(cb => {
+        const row = cb.closest('tr');
+        const productData = getProductDataFromRow(row);
+        const productContext = getProductContext(productData);
+
+        if (productContext === currentSelectionContext) {
+            cb.disabled = false;
+            cb.parentElement.classList.remove('opacity-50');
+            row.classList.add('context-enabled');
+            row.classList.remove('context-disabled');
+        } else {
+            cb.disabled = true;
+            cb.parentElement.classList.add('opacity-50');
+            row.classList.add('context-disabled');
+            row.classList.remove('context-enabled');
+        }
+    });
+}
+
+function handleProductClick(checkbox) {
+    const row = checkbox.closest('tr');
+    const productData = getProductDataFromRow(row);
+
+    // If no context is set, set it based on this product (don't toggle, user already clicked)
+    if (!currentSelectionContext) {
+        setSelectionContext(productData);
+        // Don't toggle here - user already clicked the checkbox
+    }
+    // If clicking product with different context, reset selection and set new context
+    else if (!isSameContext(productData)) {
+        clearSelection();
+        setSelectionContext(productData);
+        // Don't toggle here - user already clicked the checkbox
+    }
+    // If same context, let the default browser behavior handle the toggle
+    else {
+        // Don't do anything - let browser handle the toggle
+    }
+
+    updateBulkActions();
+}
+
 function toggleAllProducts(master) {
-    const checkboxes = document.querySelectorAll('.product-checkbox');
+    // Only allow bulk operations for admin
+    if (USER_ROLE !== 'admin') {
+        master.checked = false;
+        showToast('Only administrators can perform bulk operations', 'error');
+        return;
+    }
+
+    // If checking all, set context from first enabled checkbox
+    if (master.checked) {
+        const firstEnabledCheckbox = document.querySelector('.product-checkbox:not(:disabled)');
+        if (firstEnabledCheckbox) {
+            const row = firstEnabledCheckbox.closest('tr');
+            const productData = getProductDataFromRow(row);
+            setSelectionContext(productData);
+        }
+    } else {
+        // If unchecking all, clear context
+        currentSelectionContext = null;
+        updateCheckboxStates();
+    }
+
+    // Only toggle checkboxes that are not disabled (respect smart selection)
+    const checkboxes = document.querySelectorAll('.product-checkbox:not(:disabled)');
     checkboxes.forEach(cb => cb.checked = master.checked);
     updateBulkActions();
 }
 
 function updateBulkActions() {
-    const checkboxes = document.querySelectorAll('.product-checkbox:checked');
+    const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked:not(:disabled)');
     const toolbar = document.getElementById('bulkActionToolbar');
     const countText = document.getElementById('selectedCountText');
+    const actionButtons = document.getElementById('bulkActionButtons');
     const masterCheckbox = document.getElementById('selectAllProducts');
-    const allCheckboxes = document.querySelectorAll('.product-checkbox');
+    const allCheckboxes = document.querySelectorAll('.product-checkbox:not(:disabled)');
 
-    if (checkboxes.length > 0) {
-        toolbar.classList.remove('d-none');
-        toolbar.classList.add('d-flex');
-        countText.innerText = checkboxes.length;
-    } else {
-        toolbar.classList.add('d-none');
-        toolbar.classList.remove('d-flex');
+    // Only show bulk toolbar for admin
+    if (USER_ROLE !== 'admin') {
+        if (toolbar) {
+            toolbar.classList.add('d-none');
+            toolbar.classList.remove('d-flex');
+        }
+        return;
     }
 
+    if (selectedCheckboxes.length > 0 && currentSelectionContext) {
+        toolbar.classList.remove('d-none');
+        toolbar.classList.add('d-flex');
+        countText.innerText = selectedCheckboxes.length;
+
+        // Generate contextual action buttons
+        let buttonsHTML = '';
+        switch (currentSelectionContext) {
+            case 'verify':
+                buttonsHTML = `
+                    <button class="btn btn-sm btn-outline-success border-0 fw-bold" onclick="bulkVerify()">
+                        <i data-lucide="shield-check" style="width: 16px; height: 16px;" class="me-1"></i> 
+                        Verify (${selectedCheckboxes.length})
+                    </button>
+                `;
+                break;
+            case 'deactivate':
+                buttonsHTML = `
+                    <button class="btn btn-sm btn-outline-warning border-0 fw-bold" onclick="bulkToggleStatus('inactive')">
+                        <i data-lucide="power-off" style="width: 16px; height: 16px;" class="me-1"></i> 
+                        Deactivate (${selectedCheckboxes.length})
+                    </button>
+                `;
+                break;
+            case 'activate':
+                buttonsHTML = `
+                    <button class="btn btn-sm btn-outline-light border-0 fw-bold" onclick="bulkToggleStatus('active')">
+                        <i data-lucide="power" style="width: 16px; height: 16px;" class="me-1"></i> 
+                        Activate (${selectedCheckboxes.length})
+                    </button>
+                `;
+                break;
+        }
+
+        buttonsHTML += `
+            <div class="vr bg-white opacity-25"></div>
+            <button class="btn btn-sm btn-link text-white text-decoration-none small" onclick="clearSelection()">Cancel</button>
+        `;
+
+        actionButtons.innerHTML = buttonsHTML;
+
+        if (window.lucide) lucide.createIcons();
+    } else {
+        // Hide toolbar and reset context when no selection
+        toolbar.classList.add('d-none');
+        toolbar.classList.remove('d-flex');
+
+        // Reset context when no items selected
+        if (currentSelectionContext) {
+            currentSelectionContext = null;
+            hideContextIndicator();
+            updateCheckboxStates();
+        }
+    }
+
+    // Update master checkbox state
     if (masterCheckbox) {
-        masterCheckbox.checked = checkboxes.length === allCheckboxes.length && allCheckboxes.length > 0;
+        masterCheckbox.checked = selectedCheckboxes.length === allCheckboxes.length && allCheckboxes.length > 0;
     }
 }
 
@@ -91,6 +343,11 @@ function clearSelection() {
     checkboxes.forEach(cb => cb.checked = false);
     const master = document.getElementById('selectAllProducts');
     if (master) master.checked = false;
+
+    // Reset selection context
+    currentSelectionContext = null;
+    hideContextIndicator();
+    updateCheckboxStates();
     updateBulkActions();
 }
 
@@ -99,8 +356,49 @@ function exportToExcel() {
     window.location.href = `/api/products/export?` + urlParams.toString();
 }
 
+async function bulkVerify() {
+    // Admin check
+    if (USER_ROLE !== 'admin') {
+        showToast('Only administrators can perform bulk operations', 'error');
+        return;
+    }
+
+    // Use smart selection - only get checked and enabled checkboxes
+    const selectedIds = Array.from(document.querySelectorAll('.product-checkbox:checked:not(:disabled)')).map(cb => parseInt(cb.value));
+    if (selectedIds.length === 0) return;
+
+    if (!confirm(`Are you sure you want to verify ${selectedIds.length} products?`)) return;
+
+    try {
+        const response = await fetch('/api/products/bulk-verify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': document.querySelector('input[name="csrf_token"]')?.value || ''
+            },
+            body: JSON.stringify({ ids: selectedIds })
+        });
+        const result = await response.json();
+        if (result.status === 'success') {
+            showToast(result.message, 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showToast(result.error || 'Failed to verify products', 'error');
+        }
+    } catch (err) {
+        showToast('Error communicating with server', 'error');
+    }
+}
+
 async function bulkToggleStatus(targetStatus) {
-    const selectedIds = Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => parseInt(cb.value));
+    // Additional admin check
+    if (USER_ROLE !== 'admin') {
+        showToast('Only administrators can perform bulk operations', 'error');
+        return;
+    }
+
+    // Use smart selection - only get checked and enabled checkboxes
+    const selectedIds = Array.from(document.querySelectorAll('.product-checkbox:checked:not(:disabled)')).map(cb => parseInt(cb.value));
     if (selectedIds.length === 0) return;
 
     if (!confirm(`Are you sure you want to ${targetStatus === 'active' ? 'activate' : 'deactivate'} ${selectedIds.length} products?`)) return;
@@ -120,33 +418,6 @@ async function bulkToggleStatus(targetStatus) {
             setTimeout(() => window.location.reload(), 1000);
         } else {
             showToast(result.error || 'Failed to update products', 'error');
-        }
-    } catch (err) {
-        showToast('Error communicating with server', 'error');
-    }
-}
-
-async function bulkDelete() {
-    const selectedIds = Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => parseInt(cb.value));
-    if (selectedIds.length === 0) return;
-
-    if (!confirm(`CRITICAL: Are you sure you want to DELETE ${selectedIds.length} products? This action cannot be undone.`)) return;
-
-    try {
-        const response = await fetch('/api/products/bulk-delete', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': document.querySelector('input[name="csrf_token"]')?.value || ''
-            },
-            body: JSON.stringify({ ids: selectedIds })
-        });
-        const result = await response.json();
-        if (result.status === 'success') {
-            showToast(result.message, 'success');
-            setTimeout(() => window.location.reload(), 1000);
-        } else {
-            showToast(result.error || 'Failed to delete products', 'error');
         }
     } catch (err) {
         showToast('Error communicating with server', 'error');
@@ -327,7 +598,7 @@ function handleUnitChange() {
     const itemsPerUnitGroup = document.getElementById('itemsPerUnitGroup');
     const itemsPerUnitInput = document.getElementById('items_per_unit');
 
-    if (unit === 'Box' || unit === 'Strip') {
+    if (unit === 'Box' || unit === 'Strip' || unit === 'Blister' || unit === 'Sheet') {
         itemsPerUnitGroup.style.display = 'block';
     } else {
         itemsPerUnitGroup.style.display = 'none';
@@ -888,3 +1159,6 @@ function closeModal(id) {
     if (modal) modal.hide();
     else el.style.display = 'none';
 }
+
+// Make showToast globally available
+window.showToast = showToast;

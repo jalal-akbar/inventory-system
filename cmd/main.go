@@ -112,7 +112,7 @@ func main() {
 	mux.Handle("/api/products/toggle-status", middleware.RequireAuth(middleware.RequireAdmin(http.HandlerFunc(productApiHandler.ToggleStatus))))
 	mux.Handle("/api/products/details", middleware.RequireAuth(http.HandlerFunc(productApiHandler.GetDetails)))
 	mux.Handle("/api/products/bulk-status", middleware.RequireAuth(middleware.RequireAdmin(http.HandlerFunc(productApiHandler.BulkStatus))))
-	mux.Handle("/api/products/bulk-delete", middleware.RequireAuth(middleware.RequireAdmin(http.HandlerFunc(productApiHandler.BulkDelete))))
+	mux.Handle("/api/products/bulk-verify", middleware.RequireAuth(middleware.RequireAdmin(http.HandlerFunc(productApiHandler.BulkVerify))))
 	mux.Handle("/api/products/export", middleware.RequireAuth(http.HandlerFunc(productApiHandler.ExportExcel)))
 	mux.Handle("/api/products/pending-count", middleware.RequireAuth(http.HandlerFunc(productApiHandler.GetPendingCount)))
 	mux.Handle("/api/products/search", middleware.RequireAuth(http.HandlerFunc(productApiHandler.Search)))

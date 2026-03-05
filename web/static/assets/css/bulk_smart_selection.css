@@ -1,0 +1,146 @@
+/* Smart Selection System Styles */
+.product-checkbox:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.product-checkbox:disabled+* {
+    opacity: 0.5;
+}
+
+/* Visual feedback for disabled rows */
+tr.disabled-row {
+    opacity: 0.5;
+    background-color: #f8f9fa;
+}
+
+/* Context indicator styles */
+.context-indicator {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.9em;
+    font-weight: 600;
+    z-index: 900;
+    /* Much lower than dropdown */
+    animation: slideIn 0.3s ease-out;
+    pointer-events: none;
+    /* Don't interfere with dropdown clicks */
+    opacity: 0.9;
+    /* Slightly transparent so dropdown can show through */
+}
+
+/* Ensure user dropdown stays on top and visible */
+.user-dropdown#userDropdownContent.show {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(0) !important;
+    z-index: 1002 !important;
+    /* Higher than context indicator */
+    display: block !important;
+}
+
+.context-indicator.verify {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.context-indicator.deactivate {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+}
+
+.context-indicator.activate {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Enhanced bulk toolbar */
+.bulk-action-toolbar {
+    backdrop-filter: blur(10px);
+    background: rgba(33, 37, 41, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bulk-action-toolbar .btn {
+    transition: all 0.2s ease;
+}
+
+.bulk-action-toolbar .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Checkbox improvements */
+.product-checkbox {
+    transition: all 0.2s ease;
+}
+
+.product-checkbox:not(:disabled):hover {
+    transform: scale(1.1);
+}
+
+.product-checkbox:not(:disabled):checked {
+    animation: checkPulse 0.3s ease-out;
+}
+
+@keyframes checkPulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Row highlighting for current context */
+tr.context-enabled {
+    background-color: rgba(59, 130, 246, 0.05);
+}
+
+tr.context-enabled:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+tr.context-disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+/* Selection count badge */
+#selectedCountText {
+    animation: countUpdate 0.3s ease-out;
+}
+
+@keyframes countUpdate {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}

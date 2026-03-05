@@ -115,8 +115,10 @@
                     <thead class="bg-light">
                         <tr>
                             <th class="border-0 px-4 py-3 text-muted small fw-bold text-uppercase" style="width: 40px;">
+                                {{ if eq .CurrentUser.Role "admin" }}
                                 <input type="checkbox" class="form-check-input shadow-none" id="selectAllProducts"
                                     onclick="toggleAllProducts(this)">
+                                {{ end }}
                             </th>
                             <th class="border-0 py-3 text-muted small fw-bold text-uppercase">{{ t "product_info" .Lang
                                 }}</th>
@@ -150,8 +152,10 @@
                         <tr {{ if eq .status "inactive" }}class="product-inactive" {{ end }}
                             data-product-id="{{ .id }}">
                             <td class="px-4 py-3">
+                                {{ if eq $.CurrentUser.Role "admin" }}
                                 <input type="checkbox" class="form-check-input shadow-none product-checkbox"
-                                    value="{{ .id }}" onclick="updateBulkActions()">
+                                    value="{{ .id }}" onclick="handleProductClick(this)">
+                                {{ end }}
                             </td>
                             <td class="py-3">
                                 <div class="d-flex flex-column">
@@ -808,10 +812,36 @@
     </div>
 </div>
 
-
 <!-- Modal Container -->
 <div id="modal-container"></div>
 
+<!-- Lucide Icons init -->
+<script>
+    lucide.createIcons();
+</script>
+<!-- Custom JS -->
+<script src="/static/assets/js/password_toggle.js"></script>
+<script src="/static/assets/js/main.js"></script>
+<script src="/static/assets/js/manage_products.js"></script>
+
+<!-- Global Variables -->
+<script>
+    // Set user role for JavaScript access
+    window.USER_ROLE = '{{ .CurrentUser.Role }}';
+    window.TRANSLATIONS = {
+        'confirm_approve_product': '{{ t "confirm_approve_product" .Lang }}',
+        'yes_inactivate': '{{ t "yes_inactivate" .Lang }}',
+        'confirm_delete_title': '{{ t "confirm_delete_title" .Lang }}',
+        'confirm_delete_text': '{{ t "confirm_delete_text" .Lang }}',
+        'inactivated': '{{ t "inactivated" .Lang }}',
+        'error': '{{ t "error" .Lang }}',
+        'js_adj_zero_stock': '{{ t "js_adj_zero_stock" .Lang }}',
+        'js_adj_exceed_stock': '{{ t "js_adj_exceed_stock" .Lang }}',
+        'warehouse_confirm': '{{ t "warehouse_confirm" .Lang }}',
+        'verify_confirm': '{{ t "verify_confirm" .Lang }}'
+    };
+</script>
+</body>
 <script>
     function getProductModal() {
         const el = document.getElementById('productModal');
@@ -829,14 +859,14 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': '{{ .CSRFToken }}'
+                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ .CSRFToken }}'
             },
             body: JSON.stringify({ id: parseInt(id) })
         })
             .then(r => r.json())
             .then(d => {
                 if (d.status === 'success') {
-                    if (window.showToast) window.showToast('{{ t "approved_text" .Lang }}: ' + name, 'success');
+                    showToast('{{ t "approved_text" .Lang }}: ' + name, 'success');
                     setTimeout(() => window.location.reload(), 1200);
                 } else {
                     throw new Error(d.error || 'Failed to approve product');
@@ -844,7 +874,7 @@
             })
             .catch(err => {
                 console.error('Approve error:', err);
-                if (window.showToast) window.showToast(err.message, 'error');
+                showToast(err.message, 'error');
             });
     }
 
@@ -858,7 +888,7 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': '{{ .CSRFToken }}'
+                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ .CSRFToken }}'
             },
             body: JSON.stringify({ id: parseInt(id) })
         })
@@ -866,7 +896,7 @@
             .then(d => {
                 if (d.status === 'success') {
                     const toastMsg = isActivating ? '{{ t "product_activated" .Lang }}' : '{{ t "product_deactivated" .Lang }}';
-                    if (window.showToast) window.showToast(toastMsg, 'success');
+                    showToast(toastMsg, 'success');
                     setTimeout(() => window.location.reload(), 1200);
                 } else {
                     throw new Error(d.error || 'Failed to toggle status');
@@ -874,7 +904,7 @@
             })
             .catch(err => {
                 console.error('Status toggle error:', err);
-                if (window.showToast) window.showToast(err.message, 'error');
+                showToast(err.message, 'error');
             });
     }
 
@@ -1207,7 +1237,7 @@
 
         const label = document.getElementById('totalAddedLabel');
         if (label) {
-            if (unit === 'Box' || unit === 'Strip') {
+            if (unit === 'Box' || unit === 'Strip' || unit === 'Blister' || unit === 'Sheet') {
                 label.innerText = (initialStock * itemsPerUnit) + ' ' + baseUnit;
             } else {
                 label.innerText = initialStock + ' ' + unit;

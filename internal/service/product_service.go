@@ -21,7 +21,7 @@ type ProductService interface {
 	GetBestSellingProducts(limit int) ([]map[string]interface{}, error)
 	SearchWithAllBatches(search, filter string) ([]map[string]interface{}, error)
 	BulkToggleStatus(ids []int, targetStatus string, userID int) error
-	BulkDelete(ids []int, userID int) error
+	BulkVerify(ids []int, userID int) error
 }
 
 type productService struct {
@@ -260,7 +260,7 @@ func (s *productService) BulkToggleStatus(ids []int, targetStatus string, userID
 	return tx.Commit()
 }
 
-func (s *productService) BulkDelete(ids []int, userID int) error {
+func (s *productService) BulkVerify(ids []int, userID int) error {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
@@ -275,10 +275,13 @@ func (s *productService) BulkDelete(ids []int, userID int) error {
 		if err != nil {
 			continue
 		}
-		if err := productRepo.SoftDelete(id); err != nil {
+		if p.IsVerified {
+			continue // Skip already verified products
+		}
+		if err := productRepo.Verify(id); err != nil {
 			return err
 		}
-		logRepo.Log(userID, "Bulk Deleted (Inactive): "+p.Name)
+		logRepo.Log(userID, "Bulk Verified: "+p.Name)
 	}
 
 	return tx.Commit()

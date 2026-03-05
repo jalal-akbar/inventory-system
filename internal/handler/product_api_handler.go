@@ -550,6 +550,34 @@ func (h *ProductApiHandler) GetLedger(w http.ResponseWriter, r *http.Request) {
 		"entries":       entries,
 	})
 }
+func (h *ProductApiHandler) BulkVerify(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var data struct {
+		IDs []int `json:"ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.RespondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid JSON"})
+		return
+	}
+
+	session := middleware.GetSession(r)
+	if session == nil || session.Role != "admin" {
+		h.RespondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Admin access required"})
+		return
+	}
+
+	if err := h.productService.BulkVerify(data.IDs, session.UserID); err != nil {
+		h.RespondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	h.RespondJSON(w, http.StatusOK, map[string]interface{}{"status": "success", "message": "Products verified successfully"})
+}
+
 func (h *ProductApiHandler) BulkStatus(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -577,34 +605,6 @@ func (h *ProductApiHandler) BulkStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.RespondJSON(w, http.StatusOK, map[string]interface{}{"status": "success", "message": "Products updated successfully"})
-}
-
-func (h *ProductApiHandler) BulkDelete(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var data struct {
-		IDs []int `json:"ids"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		h.RespondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid JSON"})
-		return
-	}
-
-	session := middleware.GetSession(r)
-	userID := 0
-	if session != nil {
-		userID = session.UserID
-	}
-
-	if err := h.productService.BulkDelete(data.IDs, userID); err != nil {
-		h.RespondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		return
-	}
-
-	h.RespondJSON(w, http.StatusOK, map[string]interface{}{"status": "success", "message": "Products deleted successfully"})
 }
 
 func (h *ProductApiHandler) ExportExcel(w http.ResponseWriter, r *http.Request) {
